@@ -32,20 +32,19 @@ com.wit.common/
 ├── config/                    # 공통 Config
 │   └── swagger/
 │       └── SwaggerConfig.java
-├── response/                  # API 응답
-│   ├── ApiResponse.java
-│   └── ApiResponseAdvice.java
 ├── exception/                 # 예외 처리
 │   ├── code/
 │   │   ├── ErrorCode.java
 │   │   └── GlobalErrorCode.java
 │   ├── dto/
 │   │   └── ErrorResponse.java
-│   ├── CustomException.java
+│   ├── BusinessException.java
 │   └── handler/
 │       └── GlobalExceptionHandler.java
 ├── entity/                    # 공통 Entity
 │   └── BaseTimeEntity.java
+├── annotation/                # 커스텀 애노테이션
+│   └── CurrentUserId.java
 └── util/                      # 유틸리티
 ```
 
@@ -148,31 +147,68 @@ module/
 
 ## CQRS Application
 
-**Service Layer (Split):**
+**Service Layer (Split with Interface):**
 ```java
+// Command Service (Interface)
+public interface UserService {
+    User create(...);
+    void update(...);
+    void delete(...);
+}
+
+// Command Service (Implementation)
 @Service
-public class UserService {        // CUD operations
+public class UserServiceImpl implements UserService {
+    @Transactional
     public User create(...) { }
+    
+    @Transactional
     public void update(...) { }
+    
+    @Transactional
     public void delete(...) { }
 }
 
+// Query Service (Interface)
+public interface UserQueryService {
+    UserDTO findById(Long id);
+    List<UserDTO> findByCondition(...);
+}
+
+// Query Service (Implementation)
 @Service
-public class UserQueryService {   // Read operations
-    public UserDTO findById(...) { }
-    public List<UserDTO> findAll(...) { }
+@Transactional(readOnly = true)
+public class UserQueryServiceImpl implements UserQueryService {
+    public UserDTO findById(Long id) { }
+    public List<UserDTO> findByCondition(...) { }
 }
 ```
+
+**Pattern:**
+- Command: `XxxService` (interface) + `XxxServiceImpl` (implementation)
+- Query: `XxxQueryService` (interface) + `XxxQueryServiceImpl` (implementation)
+- All services follow interface + implementation pattern
+- Implementation classes use `@Transactional` at method level
+- Query services have `@Transactional(readOnly = true)` at class level
 
 **Controller Layer (NOT split):**
 ```java
 @RestController
-@RequestMapping("/api/users")
+@RequestMapping("/v1/users")
 public class UserController {
     private final UserService userService;
     private final UserQueryService userQueryService;
     
     // Both CUD and Query in same controller
+    @PostMapping
+    public ResponseEntity<UserResponse> create(@RequestBody UserRequest request) {
+        return ResponseEntity.ok(userService.create(request));
+    }
+    
+    @GetMapping("/{id}")
+    public ResponseEntity<UserResponse> getById(@PathVariable Long id) {
+        return ResponseEntity.ok(userQueryService.findById(id));
+    }
 }
 ```
 
