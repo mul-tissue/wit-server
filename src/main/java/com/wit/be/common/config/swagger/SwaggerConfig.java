@@ -1,5 +1,6 @@
 package com.wit.be.common.config.swagger;
 
+import com.wit.be.common.annotation.CurrentUserId;
 import com.wit.be.infra.properties.UrlProperties;
 import io.swagger.v3.oas.models.Components;
 import io.swagger.v3.oas.models.OpenAPI;
@@ -9,8 +10,10 @@ import io.swagger.v3.oas.models.security.SecurityScheme;
 import io.swagger.v3.oas.models.servers.Server;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
+import org.springdoc.core.customizers.OperationCustomizer;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.core.MethodParameter;
 
 @Configuration
 @RequiredArgsConstructor
@@ -52,5 +55,25 @@ public class SwaggerConfig {
 
     private SecurityRequirement setSecurityRequirement() {
         return new SecurityRequirement().addList(ACCESS_TOKEN);
+    }
+
+    /**
+     * @CurrentUserId 어노테이션이 붙은 파라미터를 Swagger에서 숨김
+     */
+    @Bean
+    public OperationCustomizer operationCustomizer() {
+        return (operation, handlerMethod) -> {
+            MethodParameter[] parameters = handlerMethod.getMethodParameters();
+            for (MethodParameter parameter : parameters) {
+                if (parameter.hasParameterAnnotation(CurrentUserId.class)) {
+                    // Swagger에서 해당 파라미터 제거
+                    operation
+                            .getParameters()
+                            .removeIf(
+                                    param -> param.getName().equals(parameter.getParameterName()));
+                }
+            }
+            return operation;
+        };
     }
 }
