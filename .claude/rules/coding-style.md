@@ -1,0 +1,323 @@
+---
+name: coding-style
+description: Java and Spring Boot coding standards following Google Java Style Guide
+---
+
+# Coding Style
+
+## Google Java Style Guide
+**Follow Google Java Style Guide**: https://google.github.io/styleguide/javaguide.html
+
+Key points:
+- **Indentation**: 2 spaces (no tabs)
+- **Column limit**: 100 characters
+- **Braces**: K&R style (opening brace on same line)
+- **Naming**:
+  - Classes: `UpperCamelCase`
+  - Methods/Variables: `lowerCamelCase`
+  - Constants: `UPPER_SNAKE_CASE`
+- **Import order**: Static imports first, then regular imports, alphabetically sorted
+
+## Java Standards
+- Java 21 features preferred
+- Use `final` for immutability when possible
+- Max file length: 300 lines
+- Use Lombok to reduce boilerplate (`@Getter`, `@Builder`, etc.)
+- Use records for DTOs when appropriate
+
+## ❌ NO SETTERS in Domain Entities
+
+**Setter methods are prohibited in domain entities.** Use business methods instead.
+
+### ❌ BAD - Using Setters
+```java
+@Entity
+public class User {
+    @Setter // ❌ NEVER use @Setter
+    private String nickname;
+    
+    public void setNickname(String nickname) { // ❌ NEVER
+        this.nickname = nickname;
+    }
+    
+    public void setStatus(UserStatus status) { // ❌ NEVER
+        this.status = status;
+    }
+}
+
+// Usage
+user.setNickname("newName");
+user.setStatus(UserStatus.ACTIVE);
+```
+
+### ✅ GOOD - Using Business Methods
+```java
+@Entity
+@Getter
+@NoArgsConstructor(access = AccessLevel.PROTECTED)
+public class User {
+    private String nickname;
+    private UserStatus status;
+    
+    // ✅ Business method with clear intent
+    public void updateProfile(String nickname, String profileImagePath) {
+        this.nickname = nickname;
+        this.profileImagePath = profileImagePath;
+    }
+    
+    // ✅ State transition with validation
+    public void activate() {
+        if (this.status != UserStatus.PENDING_ONBOARDING) {
+            throw new IllegalStateException("Cannot activate user in status: " + this.status);
+        }
+        this.status = UserStatus.ACTIVE;
+    }
+    
+    // ✅ Explicit withdrawal with timestamp
+    public void withdraw() {
+        this.status = UserStatus.WITHDRAWN;
+        this.withdrawnAt = LocalDateTime.now();
+    }
+    
+    // ✅ Record login time
+    public void recordLogin() {
+        this.lastLoginAt = LocalDateTime.now();
+    }
+}
+
+// Usage - clear business intent
+user.updateProfile("newName", "/images/profile.jpg");
+user.activate();
+user.withdraw();
+user.recordLogin();
+```
+
+### Why No Setters?
+1. **Intent is clear**: `user.withdraw()` is clearer than `user.setStatus(WITHDRAWN)`
+2. **Validation**: Business methods can validate state transitions
+3. **Encapsulation**: Internal state changes are controlled
+4. **Auditability**: Side effects (timestamps, events) are handled consistently
+
+## Spring Boot Patterns
+
+### Dependency Injection
+```java
+// ✅ Constructor injection (preferred)
+@Service
+public class UserService {
+    private final UserRepository userRepository;
+    
+    public UserService(UserRepository userRepository) {
+        this.userRepository = userRepository;
+    }
+}
+
+// ❌ Field injection (avoid)
+@Service
+public class UserService {
+    @Autowired
+    private UserRepository userRepository;
+}
+```
+
+### Layer Responsibilities
+- **Controller**: HTTP request/response, validation
+- **Service**: Business logic, transactions
+- **Repository**: Data access only
+- **Domain**: Business rules, entities
+
+### File Naming
+- Controllers: `*Controller.java`
+- Services: `*Service.java` (Command), `*QueryService.java` (Query)
+- Repositories: `*Repository.java`, `*QueryRepository.java`
+- DTOs: `*Request.java`, `*Response.java`, `*DTO.java`
+- Events: `*Event.java` (past tense, e.g., `UserCreatedEvent`)
+
+## Package Structure (Per Module)
+```
+com.wit.<module>/
+├── api/
+│   └── <Module>Controller.java
+├── service/
+│   ├── <Module>Service.java
+│   └── <Module>QueryService.java
+├── domain/
+│   └── <Entity>.java
+├── repository/
+│   ├── <Entity>Repository.java
+│   └── <Entity>QueryRepository.java
+├── event/
+│   └── <Entity>CreatedEvent.java
+└── dto/
+    ├── <Entity>Request.java
+    ├── <Entity>Response.java
+    └── <Entity>DTO.java
+```
+
+## Controller Pattern
+```java
+@RestController
+@RequestMapping("/api/users")
+public class UserController {
+    
+    private final UserService userService;
+    private final UserQueryService userQueryService;
+    
+    public UserController(UserService userService, UserQueryService userQueryService) {
+        this.userService = userService;
+        this.userQueryService = userQueryService;
+    }
+    
+    @PostMapping
+    public ResponseEntity<UserResponse> create(@Valid @RequestBody UserRequest request) {
+        return ResponseEntity.status(HttpStatus.CREATED)
+            .body(userService.create(request));
+    }
+    
+    @GetMapping("/{id}")
+    public ResponseEntity<UserDTO> getById(@PathVariable Long id) {
+        return ResponseEntity.ok(userQueryService.findById(id));
+    }
+}
+```
+
+## Service Pattern (Command)
+```java
+@Service
+@Transactional
+public class UserService {
+    
+    private final UserRepository userRepository;
+    private final ApplicationEventPublisher eventPublisher;
+    
+    public UserService(UserRepository userRepository, 
+                       ApplicationEventPublisher eventPublisher) {
+        this.userRepository = userRepository;
+        this.eventPublisher = eventPublisher;
+    }
+    
+    public UserResponse create(UserRequest request) {
+        User user = User.builder()
+            .email(request.email())
+            .name(request.name())
+            .build();
+        
+        User saved = userRepository.save(user);
+        
+        // Publish event after successful save
+        eventPublisher.publishEvent(new UserCreatedEvent(saved.getId()));
+        
+        return UserResponse.from(saved);
+    }
+}
+```
+
+## Service Pattern (Query)
+```java
+@Service
+@Transactional(readOnly = true)
+public class UserQueryService {
+    
+    private final UserQueryRepository userQueryRepository;
+    
+    public UserQueryService(UserQueryRepository userQueryRepository) {
+        this.userQueryRepository = userQueryRepository;
+    }
+    
+    public UserDTO findById(Long id) {
+        return userQueryRepository.findById(id)
+            .orElseThrow(() -> new EntityNotFoundException("User not found: " + id));
+    }
+    
+    public List<UserDTO> findAll(Pageable pageable) {
+        return userQueryRepository.findAll(pageable);
+    }
+}
+```
+
+## Event Pattern
+```java
+// Event class
+public record UserCreatedEvent(Long userId) {
+}
+
+// Event listener (in another module)
+@Component
+public class NotificationEventListener {
+    
+    private final NotificationService notificationService;
+    
+    public NotificationEventListener(NotificationService notificationService) {
+        this.notificationService = notificationService;
+    }
+    
+    @EventListener
+    public void handleUserCreated(UserCreatedEvent event) {
+        notificationService.sendWelcomeNotification(event.userId());
+    }
+}
+```
+
+## Exception Handling
+```java
+@RestControllerAdvice
+public class GlobalExceptionHandler {
+    
+    @ExceptionHandler(EntityNotFoundException.class)
+    public ResponseEntity<ErrorResponse> handleNotFound(EntityNotFoundException e) {
+        return ResponseEntity.status(HttpStatus.NOT_FOUND)
+            .body(new ErrorResponse(e.getMessage()));
+    }
+    
+    @ExceptionHandler(MethodArgumentNotValidException.class)
+    public ResponseEntity<ErrorResponse> handleValidation(MethodArgumentNotValidException e) {
+        String message = e.getBindingResult().getFieldErrors().stream()
+            .map(FieldError::getDefaultMessage)
+            .collect(Collectors.joining(", "));
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+            .body(new ErrorResponse(message));
+    }
+}
+```
+
+## DTO Pattern
+```java
+// Request DTO (use records)
+public record UserRequest(
+    @NotBlank String email,
+    @NotBlank String name,
+    @Size(min = 8) String password
+) {}
+
+// Response DTO
+public record UserResponse(
+    Long id,
+    String email,
+    String name,
+    LocalDateTime createdAt
+) {
+    public static UserResponse from(User user) {
+        return new UserResponse(
+            user.getId(),
+            user.getEmail(),
+            user.getName(),
+            user.getCreatedAt()
+        );
+    }
+}
+
+// Query DTO (for inter-module communication)
+public record UserProfileDTO(
+    Long id,
+    String name,
+    String profileImageUrl
+) {}
+```
+
+## General Rules
+- Prefer composition over inheritance
+- Use Optional for nullable returns (except collections)
+- Don't return null, throw exceptions or return empty collections
+- Use meaningful variable names (no single letters except loop indices)
+- Keep methods under 20 lines
+- One class = one responsibility
