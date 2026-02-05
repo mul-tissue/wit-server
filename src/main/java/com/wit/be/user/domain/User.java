@@ -78,7 +78,7 @@ public class User extends BaseTimeEntity {
         this.gender = gender;
         this.birthDate = birthDate;
         this.profileImageUrl = profileImageUrl;
-        this.status = status != null ? status : UserStatus.PENDING;
+        this.status = status != null ? status : UserStatus.PENDING_AGREEMENT;
         this.role = role != null ? role : UserRole.USER;
     }
 
@@ -111,8 +111,16 @@ public class User extends BaseTimeEntity {
         this.status = UserStatus.DELETED;
     }
 
-    public boolean isPending() {
-        return this.status == UserStatus.PENDING;
+    public void completeTermsAgreement() {
+        this.status = UserStatus.PENDING_ONBOARDING;
+    }
+
+    public boolean isPendingAgreement() {
+        return this.status == UserStatus.PENDING_AGREEMENT;
+    }
+
+    public boolean isPendingOnboarding() {
+        return this.status == UserStatus.PENDING_ONBOARDING;
     }
 
     public boolean isActive() {

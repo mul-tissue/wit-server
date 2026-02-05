@@ -46,10 +46,6 @@ public class AuthServiceImpl implements AuthService {
                 oAuthUserInfo.email());
 
         // 2. 사용자 조회 또는 생성
-        boolean isNewUser =
-                !userQueryService.existsBySocialTypeAndProviderId(
-                        request.socialType(), oAuthUserInfo.providerId());
-
         User user =
                 userService.findOrCreateUser(
                         request.socialType(), oAuthUserInfo.providerId(), oAuthUserInfo.email());
@@ -63,15 +59,15 @@ public class AuthServiceImpl implements AuthService {
         refreshTokenRepository.save(
                 user.getId(), refreshToken, jwtUtil.getRefreshTokenExpiration());
 
-        log.info("Social login successful - userId: {}, isNewUser: {}", user.getId(), isNewUser);
+        log.info(
+                "Social login successful - userId: {}, status: {}", user.getId(), user.getStatus());
 
-        return new SocialLoginResponse(
-                user.getPublicId(),
+        return SocialLoginResponse.from(
+                user,
                 accessToken,
                 refreshToken,
                 jwtUtil.getAccessTokenExpiration(),
-                jwtUtil.getRefreshTokenExpiration(),
-                isNewUser);
+                jwtUtil.getRefreshTokenExpiration());
     }
 
     @Override

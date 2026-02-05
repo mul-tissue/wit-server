@@ -70,10 +70,11 @@ class AuthServiceTest {
 
         // Then
         assertThat(response).isNotNull();
-        assertThat(response.publicId()).isEqualTo(user.getPublicId());
         assertThat(response.accessToken()).isEqualTo("access-token");
         assertThat(response.refreshToken()).isEqualTo("refresh-token");
-        assertThat(response.isNewUser()).isTrue();
+        assertThat(response.status()).isEqualTo(UserStatus.PENDING_AGREEMENT);
+        assertThat(response.nickname()).isNull();
+        assertThat(response.profileImageUrl()).isNull();
     }
 
     @Test
@@ -100,7 +101,7 @@ class AuthServiceTest {
         SocialLoginResponse response = authService.socialLogin(request);
 
         // Then
-        assertThat(response.isNewUser()).isFalse();
+        assertThat(response.status()).isEqualTo(UserStatus.PENDING_AGREEMENT);
     }
 
     @Test
@@ -121,7 +122,7 @@ class AuthServiceTest {
                 .socialType(socialType)
                 .providerId(providerId)
                 .email(email)
-                .status(UserStatus.PENDING)
+                .status(UserStatus.PENDING_AGREEMENT)
                 .role(UserRole.USER)
                 .build();
     }

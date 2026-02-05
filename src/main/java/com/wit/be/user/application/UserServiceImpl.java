@@ -81,7 +81,7 @@ public class UserServiceImpl implements UserService {
                         .socialType(socialType)
                         .providerId(providerId)
                         .email(email)
-                        .status(UserStatus.PENDING)
+                        .status(UserStatus.PENDING_AGREEMENT)
                         .role(UserRole.USER)
                         .build();
 

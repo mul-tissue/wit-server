@@ -46,7 +46,7 @@ class UserServiceTest {
         assertThat(user.getSocialType()).isEqualTo(socialType);
         assertThat(user.getProviderId()).isEqualTo(providerId);
         assertThat(user.getEmail()).isEqualTo(email);
-        assertThat(user.getStatus()).isEqualTo(UserStatus.PENDING);
+        assertThat(user.getStatus()).isEqualTo(UserStatus.PENDING_AGREEMENT);
     }
 
     @Test

@@ -4,7 +4,10 @@ import com.wit.be.common.annotation.CurrentUserId;
 import com.wit.be.terms.application.TermsQueryService;
 import com.wit.be.terms.application.TermsService;
 import com.wit.be.terms.dto.request.TermsAgreementRequest;
+import com.wit.be.terms.dto.response.TermsAgreementResponse;
 import com.wit.be.terms.dto.response.TermsResponse;
+import com.wit.be.user.application.UserQueryService;
+import com.wit.be.user.domain.User;
 import jakarta.validation.Valid;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
@@ -22,6 +25,7 @@ public class TermsController {
 
     private final TermsService termsService;
     private final TermsQueryService termsQueryService;
+    private final UserQueryService userQueryService;
 
     @GetMapping("/active")
     public ResponseEntity<List<TermsResponse>> getActiveTerms() {
@@ -30,9 +34,10 @@ public class TermsController {
     }
 
     @PostMapping("/agree")
-    public ResponseEntity<Void> agreeToTerms(
+    public ResponseEntity<TermsAgreementResponse> agreeToTerms(
             @CurrentUserId Long userId, @Valid @RequestBody TermsAgreementRequest request) {
         termsService.agreeToTerms(userId, request);
-        return ResponseEntity.ok().build();
+        User user = userQueryService.findById(userId);
+        return ResponseEntity.ok(new TermsAgreementResponse(user.getStatus()));
     }
 }

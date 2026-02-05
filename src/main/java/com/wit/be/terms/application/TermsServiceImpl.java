@@ -46,6 +46,9 @@ public class TermsServiceImpl implements TermsService {
 
         // 모든 필수 약관에 동의했는지 검증
         validateAllRequiredTermsAgreed(requiredTerms, request);
+
+        // 약관 동의 완료 시 사용자 상태를 PENDING_ONBOARDING으로 변경
+        user.completeTermsAgreement();
     }
 
     private void saveOrUpdateAgreement(User user, Terms terms, boolean agreed) {
