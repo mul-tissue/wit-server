@@ -7,10 +7,34 @@ description: Development workflow and commit habits
 
 ## Issue-Driven Development
 
-### 작업 시작 전
-1. **이슈 먼저 생성** (또는 기존 이슈 확인)
+### ⚠️ 필수: 작업 시작 전 이슈 생성
+
+**AI 에이전트는 다음 순서를 반드시 따라야 합니다:**
+
+1. **GitHub 이슈 먼저 생성** (`gh issue create`)
+   - 제목: 작업 내용 요약
+   - 본문: 작업 목적, 체크리스트
+   - 라벨: feature/bug/refactor 등
 2. 이슈 번호로 브랜치 생성: `feat/#123-user-signup`
-3. 이슈에 작업 내역 체크리스트 작성
+3. 작업 진행
+4. PR 생성 시 이슈 번호 연결: `Closes #123`
+
+### 이슈 템플릿 예시
+```markdown
+## 목적
+회원가입 API 구현
+
+## 작업 내용
+- [ ] User 엔티티 생성
+- [ ] UserRepository 생성
+- [ ] UserService 회원가입 로직
+- [ ] UserController 엔드포인트
+- [ ] 테스트 작성
+
+## 완료 조건
+- 모든 테스트 통과
+- Swagger 문서화 완료
+```
 
 ### 브랜치 네이밍
 ```
@@ -103,15 +127,28 @@ git commit -m "feat(user): UserService 회원가입 구현 및 테스트"
 
 ## PR 워크플로우
 
-### PR 생성 시점
-- 이슈의 모든 작업 완료 시
-- 또는 중간 리뷰가 필요할 때 (Draft PR)
+### PR 생성 전 체크
+1. ✅ 이슈 번호 확인 (없으면 생성)
+2. ✅ 모든 테스트 통과
+3. ✅ Spotless 포맷팅 적용
 
-### PR 체크리스트
-- [ ] 모든 테스트 통과
-- [ ] Spotless 포맷팅 적용
-- [ ] 이슈 번호 연결
-- [ ] 작업 내용 요약
+### PR 생성
+```bash
+# gh CLI 사용 (AI가 자동 실행)
+gh pr create --base develop \
+  --head feat/#123-user-signup \
+  --title "feat: 회원가입 API 구현" \
+  --body "Closes #123
+
+## Summary
+...
+"
+```
+
+### PR 본문 필수 항목
+- `Closes #123` - 이슈 자동 연결
+- 변경 사항 요약
+- 테스트 결과
 
 ### PR 크기
 - 이상적: 200-400 줄 변경
