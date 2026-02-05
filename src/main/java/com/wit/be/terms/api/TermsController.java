@@ -1,9 +1,10 @@
-package com.wit.be.terms.controller;
+package com.wit.be.terms.api;
 
 import com.wit.be.common.annotation.CurrentUserId;
+import com.wit.be.terms.application.TermsQueryService;
+import com.wit.be.terms.application.TermsService;
 import com.wit.be.terms.dto.request.TermsAgreementRequest;
 import com.wit.be.terms.dto.response.TermsResponse;
-import com.wit.be.terms.service.TermsService;
 import jakarta.validation.Valid;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
@@ -20,10 +21,11 @@ import org.springframework.web.bind.annotation.RestController;
 public class TermsController {
 
     private final TermsService termsService;
+    private final TermsQueryService termsQueryService;
 
     @GetMapping("/active")
     public ResponseEntity<List<TermsResponse>> getActiveTerms() {
-        List<TermsResponse> terms = termsService.getActiveTerms();
+        List<TermsResponse> terms = termsQueryService.getActiveTerms();
         return ResponseEntity.ok(terms);
     }
 

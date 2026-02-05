@@ -1,4 +1,4 @@
-package com.wit.be.terms.service;
+package com.wit.be.terms.application;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -27,6 +27,8 @@ import org.springframework.transaction.annotation.Transactional;
 class TermsServiceTest {
 
     @Autowired private TermsService termsService;
+
+    @Autowired private TermsQueryService termsQueryService;
 
     @Autowired private TermsRepository termsRepository;
 
@@ -87,7 +89,7 @@ class TermsServiceTest {
     @DisplayName("활성화된 약관 목록 조회")
     void getActiveTerms_ShouldReturnActiveTerms() {
         // When
-        List<TermsResponse> activeTerms = termsService.getActiveTerms();
+        List<TermsResponse> activeTerms = termsQueryService.getActiveTerms();
 
         // Then
         assertThat(activeTerms).hasSize(3);
@@ -115,7 +117,7 @@ class TermsServiceTest {
         termsService.agreeToTerms(testUser.getId(), request);
 
         // Then
-        assertThat(termsService.hasAgreedToAllRequiredTerms(testUser.getId())).isTrue();
+        assertThat(termsQueryService.hasAgreedToAllRequiredTerms(testUser.getId())).isTrue();
     }
 
     @Test
@@ -171,6 +173,6 @@ class TermsServiceTest {
         termsService.agreeToTerms(testUser.getId(), request);
 
         // Then
-        assertThat(termsService.hasAgreedToAllRequiredTerms(testUser.getId())).isTrue();
+        assertThat(termsQueryService.hasAgreedToAllRequiredTerms(testUser.getId())).isTrue();
     }
 }

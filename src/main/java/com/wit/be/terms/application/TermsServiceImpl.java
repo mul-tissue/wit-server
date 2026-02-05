@@ -1,10 +1,9 @@
-package com.wit.be.terms.service;
+package com.wit.be.terms.application;
 
 import com.wit.be.common.exception.BusinessException;
 import com.wit.be.terms.domain.Terms;
 import com.wit.be.terms.domain.UserTermsAgreement;
 import com.wit.be.terms.dto.request.TermsAgreementRequest;
-import com.wit.be.terms.dto.response.TermsResponse;
 import com.wit.be.terms.exception.TermsErrorCode;
 import com.wit.be.terms.repository.TermsRepository;
 import com.wit.be.terms.repository.UserTermsAgreementRepository;
@@ -17,19 +16,13 @@ import org.springframework.transaction.annotation.Transactional;
 
 @Service
 @RequiredArgsConstructor
-@Transactional(readOnly = true)
-public class TermsService {
+public class TermsServiceImpl implements TermsService {
 
     private final TermsRepository termsRepository;
     private final UserTermsAgreementRepository userTermsAgreementRepository;
     private final UserQueryService userQueryService;
 
-    /** 활성화된 약관 목록을 조회합니다. */
-    public List<TermsResponse> getActiveTerms() {
-        return termsRepository.findByActiveTrue().stream().map(TermsResponse::from).toList();
-    }
-
-    /** 약관 동의를 처리합니다. */
+    @Override
     @Transactional
     public void agreeToTerms(Long userId, TermsAgreementRequest request) {
         User user = userQueryService.findById(userId);
@@ -53,11 +46,6 @@ public class TermsService {
 
         // 모든 필수 약관에 동의했는지 검증
         validateAllRequiredTermsAgreed(requiredTerms, request);
-    }
-
-    /** 사용자가 모든 필수 약관에 동의했는지 확인합니다. */
-    public boolean hasAgreedToAllRequiredTerms(Long userId) {
-        return userTermsAgreementRepository.hasAgreedToAllRequiredTerms(userId);
     }
 
     private void saveOrUpdateAgreement(User user, Terms terms, boolean agreed) {
