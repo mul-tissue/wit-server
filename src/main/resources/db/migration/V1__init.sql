@@ -1,9 +1,28 @@
 -- V1__init.sql
 -- Description: Initial database schema for Wit application
--- Tables: users, terms, user_terms_agreements
+-- Tables: users, terms, user_terms_agreements, event_publication
 
 -- ============================================================================
--- 1. Users
+-- 1. Spring Modulith Event Publication
+-- ============================================================================
+CREATE TABLE event_publication (
+    id UUID PRIMARY KEY,
+    listener_id VARCHAR(512) NOT NULL,
+    event_type VARCHAR(512) NOT NULL,
+    serialized_event TEXT NOT NULL,
+    publication_date TIMESTAMP NOT NULL,
+    completion_date TIMESTAMP,
+    status VARCHAR(50) NOT NULL,
+    completion_attempts INT NOT NULL DEFAULT 0,
+    last_resubmission_date TIMESTAMP
+);
+
+CREATE INDEX idx_event_publication_completion_date ON event_publication(completion_date);
+CREATE INDEX idx_event_publication_publication_date ON event_publication(publication_date);
+CREATE INDEX idx_event_publication_status ON event_publication(status);
+
+-- ============================================================================
+-- 2. Users
 -- ============================================================================
 CREATE TABLE users (
     id BIGINT PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
@@ -31,7 +50,7 @@ CREATE INDEX idx_users_email ON users(email);
 CREATE INDEX idx_users_status ON users(status);
 
 -- ============================================================================
--- 2. Terms
+-- 3. Terms
 -- ============================================================================
 CREATE TABLE terms (
     id BIGINT PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
@@ -53,7 +72,7 @@ CREATE INDEX idx_terms_type ON terms(type);
 CREATE INDEX idx_terms_active ON terms(active);
 
 -- ============================================================================
--- 3. User Terms Agreements
+-- 4. User Terms Agreements
 -- ============================================================================
 CREATE TABLE user_terms_agreements (
     id BIGINT PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
