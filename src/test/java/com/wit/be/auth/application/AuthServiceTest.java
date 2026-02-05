@@ -1,4 +1,4 @@
-package com.wit.be.auth.service;
+package com.wit.be.auth.application;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
@@ -34,7 +34,7 @@ import org.mockito.quality.Strictness;
 @MockitoSettings(strictness = Strictness.LENIENT)
 class AuthServiceTest {
 
-    @InjectMocks private AuthService authService;
+    @InjectMocks private AuthServiceImpl authService;
 
     @Mock private UserService userService;
     @Mock private JwtUtil jwtUtil;

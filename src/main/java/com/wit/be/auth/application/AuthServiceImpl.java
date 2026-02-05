@@ -1,4 +1,4 @@
-package com.wit.be.auth.service;
+package com.wit.be.auth.application;
 
 import com.wit.be.auth.dto.request.SocialLoginRequest;
 import com.wit.be.auth.dto.response.SocialLoginResponse;
@@ -21,7 +21,7 @@ import org.springframework.transaction.annotation.Transactional;
 @Slf4j
 @Service
 @RequiredArgsConstructor
-public class AuthService {
+public class AuthServiceImpl implements AuthService {
 
     private final UserService userService;
     private final JwtUtil jwtUtil;
@@ -31,12 +31,7 @@ public class AuthService {
     private final GoogleOAuthValidator googleOAuthValidator;
     private final AppleOAuthValidator appleOAuthValidator;
 
-    /**
-     * 소셜 로그인을 수행합니다.
-     *
-     * @param request 소셜 로그인 요청 (socialType, token)
-     * @return 로그인 응답 (publicId, accessToken, refreshToken, isNewUser)
-     */
+    @Override
     @Transactional
     public SocialLoginResponse socialLogin(SocialLoginRequest request) {
         // 1. OAuth 토큰 검증 및 사용자 정보 조회
@@ -77,11 +72,7 @@ public class AuthService {
                 isNewUser);
     }
 
-    /**
-     * 로그아웃을 수행합니다.
-     *
-     * @param userId 사용자 ID
-     */
+    @Override
     public void logout(Long userId) {
         refreshTokenRepository.deleteByUserId(userId);
         log.info("User logged out - userId: {}", userId);

@@ -1,8 +1,8 @@
-package com.wit.be.auth.controller;
+package com.wit.be.auth.api;
 
+import com.wit.be.auth.application.AuthService;
 import com.wit.be.auth.dto.request.SocialLoginRequest;
 import com.wit.be.auth.dto.response.SocialLoginResponse;
-import com.wit.be.auth.service.AuthService;
 import com.wit.be.common.annotation.CurrentUserId;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
