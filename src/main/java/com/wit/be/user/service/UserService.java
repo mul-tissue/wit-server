@@ -50,6 +50,17 @@ public class UserService {
     }
 
     /**
+     * 소셜 로그인 사용자 존재 여부를 확인합니다.
+     *
+     * @param socialType 소셜 타입
+     * @param providerId 소셜 제공자 ID
+     * @return 존재 여부
+     */
+    public boolean existsBySocialTypeAndProviderId(SocialType socialType, String providerId) {
+        return userRepository.findBySocialTypeAndProviderId(socialType, providerId).isPresent();
+    }
+
+    /**
      * 온보딩을 완료하고 사용자를 활성화합니다.
      *
      * @param userId 사용자 ID
