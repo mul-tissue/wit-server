@@ -1,0 +1,9 @@
+oauth:
+  kakao:
+    user-info-url: https://kapi.kakao.com
+  google:
+    token-info-url: https://oauth2.googleapis.com
+  apple:
+    keys-url: https://appleid.apple.com/auth/keys
+    issuer: https://appleid.apple.com
+    audience: ${APPLE_CLIENT_ID:}

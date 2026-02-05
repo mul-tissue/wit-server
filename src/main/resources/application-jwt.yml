@@ -1,0 +1,5 @@
+jwt:
+  secret: ${JWT_SECRET:wit-local-development-secret-key-minimum-256-bits-required}
+  issuer: ${JWT_ISSUER:wit}
+  access-token-expiration: ${JWT_ACCESS_EXPIRATION:3600000}  # 1시간
+  refresh-token-expiration: ${JWT_REFRESH_EXPIRATION:2592000000}  # 30일

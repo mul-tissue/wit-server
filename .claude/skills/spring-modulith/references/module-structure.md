@@ -17,11 +17,15 @@ com.wit.user/
 ├── event/
 │   ├── UserCreatedEvent.java
 │   └── UserUpdatedEvent.java
-└── dto/
-    ├── UserRequest.java
-    ├── UserResponse.java
-    ├── UserDTO.java              # For inter-module queries
-    └── UserProfileDTO.java
+├── dto/
+│   ├── request/
+│   │   ├── CreateUserRequest.java
+│   │   └── UpdateUserRequest.java
+│   ├── response/
+│   │   └── UserResponse.java
+│   └── UserProfileDto.java       # For inter-module queries
+└── exception/
+    └── UserErrorCode.java
 ```
 
 ## Entity Example

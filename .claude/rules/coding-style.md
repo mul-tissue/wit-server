@@ -128,9 +128,10 @@ public class UserService {
 
 ### File Naming
 - Controllers: `*Controller.java`
-- Services: `*Service.java` (Command), `*QueryService.java` (Query)
+- Services: `*Service.java` (interface), `*ServiceImpl.java` (implementation)
+- Query Services: `*QueryService.java` (interface), `*QueryServiceImpl.java` (implementation)
 - Repositories: `*Repository.java`, `*QueryRepository.java`
-- DTOs: `*Request.java`, `*Response.java`, `*DTO.java`
+- DTOs: `dto/request/*Request.java`, `dto/response/*Response.java`, `dto/*Dto.java`
 - Events: `*Event.java` (past tense, e.g., `UserCreatedEvent`)
 
 ## Package Structure (Per Module)
@@ -138,26 +139,32 @@ public class UserService {
 com.wit.<module>/
 ├── api/
 │   └── <Module>Controller.java
-├── service/
-│   ├── <Module>Service.java
-│   └── <Module>QueryService.java
+├── application/
+│   ├── <Module>Service.java          # interface
+│   ├── <Module>ServiceImpl.java      # implementation
+│   ├── <Module>QueryService.java     # interface
+│   └── <Module>QueryServiceImpl.java # implementation
 ├── domain/
 │   └── <Entity>.java
 ├── repository/
 │   ├── <Entity>Repository.java
 │   └── <Entity>QueryRepository.java
+├── exception/
+│   └── <Module>ErrorCode.java
 ├── event/
 │   └── <Entity>CreatedEvent.java
-└── dto/
-    ├── <Entity>Request.java
-    ├── <Entity>Response.java
-    └── <Entity>DTO.java
+├── dto/
+│   ├── request/
+│   │   └── Create<Entity>Request.java
+│   ├── response/
+│   │   └── <Entity>Response.java
+│   └── <Entity><Purpose>Dto.java     # 중첩/공용
 ```
 
 ## Controller Pattern
 ```java
 @RestController
-@RequestMapping("/api/users")
+@RequestMapping("/v1/users")
 public class UserController {
     
     private final UserService userService;
@@ -170,41 +177,44 @@ public class UserController {
     
     @PostMapping
     public ResponseEntity<UserResponse> create(@Valid @RequestBody UserRequest request) {
-        return ResponseEntity.status(HttpStatus.CREATED)
-            .body(userService.create(request));
+        UserResponse response = userService.create(request);
+        return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
     
     @GetMapping("/{id}")
     public ResponseEntity<UserDTO> getById(@PathVariable Long id) {
-        return ResponseEntity.ok(userQueryService.findById(id));
+        UserDTO user = userQueryService.findById(id);
+        return ResponseEntity.ok(user);
     }
 }
 ```
 
-## Service Pattern (Command)
+## Service Pattern (Command) - Interface + Implementation
 ```java
+// Service Interface
+public interface UserService {
+    UserResponse create(UserRequest request);
+    void update(Long id, UserRequest request);
+    void delete(Long id);
+}
+
+// Service Implementation
 @Service
-@Transactional
-public class UserService {
+@RequiredArgsConstructor
+public class UserServiceImpl implements UserService {
     
     private final UserRepository userRepository;
     private final ApplicationEventPublisher eventPublisher;
     
-    public UserService(UserRepository userRepository, 
-                       ApplicationEventPublisher eventPublisher) {
-        this.userRepository = userRepository;
-        this.eventPublisher = eventPublisher;
-    }
-    
+    @Override
+    @Transactional
     public UserResponse create(UserRequest request) {
         User user = User.builder()
+            .nickname(request.nickname())
             .email(request.email())
-            .name(request.name())
             .build();
         
         User saved = userRepository.save(user);
-        
-        // Publish event after successful save
         eventPublisher.publishEvent(new UserCreatedEvent(saved.getId()));
         
         return UserResponse.from(saved);
@@ -212,25 +222,27 @@ public class UserService {
 }
 ```
 
-## Service Pattern (Query)
+## Service Pattern (Query) - Interface + Implementation
 ```java
+// Query Service Interface
+public interface UserQueryService {
+    UserDTO findById(Long id);
+    List<UserDTO> findAll();
+}
+
+// Query Service Implementation
 @Service
+@RequiredArgsConstructor
 @Transactional(readOnly = true)
-public class UserQueryService {
+public class UserQueryServiceImpl implements UserQueryService {
     
-    private final UserQueryRepository userQueryRepository;
+    private final UserRepository userRepository;
     
-    public UserQueryService(UserQueryRepository userQueryRepository) {
-        this.userQueryRepository = userQueryRepository;
-    }
-    
+    @Override
     public UserDTO findById(Long id) {
-        return userQueryRepository.findById(id)
-            .orElseThrow(() -> new EntityNotFoundException("User not found: " + id));
-    }
-    
-    public List<UserDTO> findAll(Pageable pageable) {
-        return userQueryRepository.findAll(pageable);
+        User user = userRepository.findById(id)
+            .orElseThrow(() -> new BusinessException(UserErrorCode.USER_NOT_FOUND));
+        return UserDTO.from(user);
     }
 }
 ```
@@ -281,15 +293,41 @@ public class GlobalExceptionHandler {
 ```
 
 ## DTO Pattern
+
+### Package Structure
+```
+dto/
+├── request/
+│   ├── CreateUserRequest.java
+│   └── UpdateUserRequest.java
+├── response/
+│   ├── UserResponse.java
+│   └── UserDetailResponse.java
+└── UserProfileDto.java          # 중첩/공용 DTO
+```
+
+### Naming Convention
+
+| Type | Pattern | Example |
+|------|---------|---------|
+| Request | `<Action><Entity>Request` | `CreateUserRequest`, `UpdateCompanionRequest` |
+| Response | `<Entity>Response`, `<Entity><Detail>Response` | `UserResponse`, `CompanionDetailResponse` |
+| Nested/Shared DTO | `<Parent><Child>Dto` | `CompanionDestinationDto`, `FeedImageDto` |
+| Inter-module DTO | `<Entity><Purpose>Dto` | `UserProfileDto`, `CompanionSummaryDto` |
+
+### Request DTO
 ```java
-// Request DTO (use records)
-public record UserRequest(
+// dto/request/CreateUserRequest.java
+public record CreateUserRequest(
     @NotBlank String email,
     @NotBlank String name,
     @Size(min = 8) String password
 ) {}
+```
 
-// Response DTO
+### Response DTO
+```java
+// dto/response/UserResponse.java
 public record UserResponse(
     Long id,
     String email,
@@ -305,9 +343,46 @@ public record UserResponse(
         );
     }
 }
+```
 
-// Query DTO (for inter-module communication)
-public record UserProfileDTO(
+### Nested DTO (별도 파일)
+```java
+// dto/CompanionDestinationDto.java
+public record CompanionDestinationDto(
+    String city,
+    String country,
+    LocalDate arrivalDate,
+    LocalDate departureDate
+) {
+    public static CompanionDestinationDto from(CompanionDestination destination) {
+        return new CompanionDestinationDto(
+            destination.getCity(),
+            destination.getCountry(),
+            destination.getArrivalDate(),
+            destination.getDepartureDate()
+        );
+    }
+}
+
+// dto/request/CreateCompanionRequest.java
+public record CreateCompanionRequest(
+    @NotBlank String title,
+    @NotBlank String description,
+    @NotEmpty List<CompanionDestinationDto> destinations  // 별도 파일 참조
+) {}
+
+// dto/response/CompanionResponse.java
+public record CompanionResponse(
+    Long id,
+    String title,
+    List<CompanionDestinationDto> destinations  // 재사용
+) {}
+```
+
+### Inter-module DTO
+```java
+// dto/UserProfileDto.java (다른 모듈에서 사용)
+public record UserProfileDto(
     Long id,
     String name,
     String profileImageUrl

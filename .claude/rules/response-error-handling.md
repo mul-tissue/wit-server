@@ -9,9 +9,6 @@ description: API Response format and Error handling conventions
 
 ```
 com.wit.common
-├── response/
-│   ├── ApiResponse.java          # 공통 응답 래퍼
-│   └── ApiResponseAdvice.java    # 자동 래핑 처리
 ├── exception/
 │   ├── code/
 │   │   ├── ErrorCode.java        # 에러코드 인터페이스
@@ -28,53 +25,39 @@ com.wit.common
 ## API Response Format
 
 ### Success Response
+Controller에서 `ResponseEntity<T>`를 직접 반환합니다.
+
 ```json
 {
-  "success": true,
-  "status": 200,
-  "data": { ... },
-  "timestamp": "2025-02-05T10:30:00"
+  "accessToken": "eyJhbGc...",
+  "isNewUser": true,
+  "needsOnboarding": true
 }
 ```
 
 ### Error Response
+GlobalExceptionHandler가 처리하여 `ErrorResponse` 형태로 반환합니다.
+
 ```json
 {
-  "success": false,
-  "status": 400,
-  "data": {
-    "errorName": "INVALID_REQUEST",
-    "message": "요청 값이 유효하지 않습니다."
-  },
-  "timestamp": "2025-02-05T10:30:00"
+  "errorName": "USER_NOT_FOUND",
+  "message": "사용자를 찾을 수 없습니다."
 }
 ```
 
 ## Implementation Pattern
 
-### ApiResponse (record)
+### ErrorResponse (record)
 ```java
-public record ApiResponse<T>(
-    boolean success,
-    int status,
-    T data,
-    LocalDateTime timestamp
+public record ErrorResponse(
+    String errorName,
+    String message
 ) {
-    public static <T> ApiResponse<T> success(int status, T data) {
-        return new ApiResponse<>(true, status, data, LocalDateTime.now());
-    }
-
-    public static <T> ApiResponse<T> fail(int status, T data) {
-        return new ApiResponse<>(false, status, data, LocalDateTime.now());
+    public static ErrorResponse of(ErrorCode errorCode) {
+        return new ErrorResponse(errorCode.getErrorName(), errorCode.getMessage());
     }
 }
 ```
-
-### ApiResponseAdvice
-- `@RestControllerAdvice(basePackages = "com.wit")`
-- 2xx 응답 자동으로 `ApiResponse.success()` 래핑
-- String, null, void 반환은 래핑하지 않음
-- 이미 ApiResponse인 경우 패스
 
 ### ErrorCode Interface
 ```java
@@ -187,23 +170,28 @@ public User findById(Long id) {
 
 ```java
 @RestController
-@RequestMapping("/api/v1/users")
+@RequestMapping("/v1/users")
 @RequiredArgsConstructor
 public class UserController {
 
     private final UserService userService;
 
     @PostMapping
-    @ResponseStatus(HttpStatus.CREATED)  // 201 반환
-    public UserResponse create(@Valid @RequestBody UserCreateRequest request) {
-        return userService.create(request);
-        // ApiResponseAdvice가 자동으로 ApiResponse로 래핑
+    public ResponseEntity<UserResponse> create(@Valid @RequestBody UserCreateRequest request) {
+        UserResponse response = userService.create(request);
+        return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
 
     @GetMapping("/{id}")
-    public UserResponse getById(@PathVariable Long id) {
-        return userQueryService.findById(id);
-        // 없으면 CustomException(USER_NOT_FOUND) → 404
+    public ResponseEntity<UserResponse> getById(@PathVariable Long id) {
+        UserResponse response = userQueryService.findById(id);
+        return ResponseEntity.ok(response);
+    }
+
+    @DeleteMapping("/{id}")
+    public ResponseEntity<Void> delete(@PathVariable Long id) {
+        userService.delete(id);
+        return ResponseEntity.noContent().build();
     }
 }
 ```
@@ -211,11 +199,13 @@ public class UserController {
 ## 주의사항
 
 ### ❌ 하지 말 것
-- Controller에서 직접 `ApiResponse` 생성하지 않기 (Advice가 처리)
+- Service에서 `ResponseEntity` 반환하지 않기 (Controller만)
 - 여러 모듈에서 같은 ErrorCode 정의하지 않기
 - catch로 예외 삼키지 않기 (로깅 후 재던지기)
 
 ### ✅ 할 것
+- Controller는 항상 `ResponseEntity<T>` 반환
 - 비즈니스 예외는 항상 `CustomException` + `ErrorCode` 사용
 - ErrorCode 메시지는 사용자에게 보여줄 수 있는 한국어로
 - 도메인별로 ErrorCode enum 분리
+- HTTP 상태 코드는 `ResponseEntity`와 `ErrorCode`의 `HttpStatus`로 관리
