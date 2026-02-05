@@ -1,6 +1,7 @@
 package com.wit.be.user.domain;
 
 import com.wit.be.common.entity.BaseTimeEntity;
+import com.wit.be.common.util.PublicIdGenerator;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
@@ -23,6 +24,9 @@ public class User extends BaseTimeEntity {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
+
+    @Column(nullable = false, unique = true, updatable = false, length = 26)
+    private String publicId;
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 20)
@@ -65,6 +69,7 @@ public class User extends BaseTimeEntity {
             String profileImageUrl,
             UserStatus status,
             UserRole role) {
+        this.publicId = PublicIdGenerator.generate();
         this.socialType = socialType;
         this.providerId = providerId;
         this.email = email;

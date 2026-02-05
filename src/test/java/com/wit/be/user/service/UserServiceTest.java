@@ -38,6 +38,8 @@ class UserServiceTest {
         // Then
         assertThat(user).isNotNull();
         assertThat(user.getId()).isNotNull();
+        assertThat(user.getPublicId()).isNotNull();
+        assertThat(user.getPublicId()).hasSize(26); // ULID is 26 characters
         assertThat(user.getSocialType()).isEqualTo(socialType);
         assertThat(user.getProviderId()).isEqualTo(providerId);
         assertThat(user.getEmail()).isEqualTo(email);
