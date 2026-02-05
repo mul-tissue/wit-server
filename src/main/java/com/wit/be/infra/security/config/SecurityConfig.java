@@ -35,7 +35,9 @@ public class SecurityConfig implements WebMvcConfigurer {
         // H2 Console (local only)
         "/h2-console/**",
         // Auth
-        "/v1/auth/**"
+        "/v1/auth/**",
+        // Terms (active terms are public)
+        "/v1/terms/active"
     };
 
     @Bean
