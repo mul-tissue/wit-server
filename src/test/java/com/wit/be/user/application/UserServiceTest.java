@@ -1,4 +1,4 @@
-package com.wit.be.user.service;
+package com.wit.be.user.application;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -22,6 +22,8 @@ import org.springframework.transaction.annotation.Transactional;
 class UserServiceTest {
 
     @Autowired private UserService userService;
+
+    @Autowired private UserQueryService userQueryService;
 
     @Autowired private UserRepository userRepository;
 
@@ -98,7 +100,7 @@ class UserServiceTest {
         userService.deleteUser(user.getId());
 
         // Then
-        User deletedUser = userService.findById(user.getId());
+        User deletedUser = userQueryService.findById(user.getId());
         assertThat(deletedUser.getStatus()).isEqualTo(UserStatus.DELETED);
     }
 
@@ -109,7 +111,7 @@ class UserServiceTest {
         Long nonExistentUserId = 999999L;
 
         // When & Then
-        assertThatThrownBy(() -> userService.findById(nonExistentUserId))
+        assertThatThrownBy(() -> userQueryService.findById(nonExistentUserId))
                 .isInstanceOf(BusinessException.class)
                 .hasFieldOrPropertyWithValue("errorCode", UserErrorCode.USER_NOT_FOUND);
     }

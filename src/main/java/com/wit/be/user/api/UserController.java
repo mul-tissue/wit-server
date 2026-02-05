@@ -1,8 +1,8 @@
-package com.wit.be.user.controller;
+package com.wit.be.user.api;
 
 import com.wit.be.common.annotation.CurrentUserId;
+import com.wit.be.user.application.UserService;
 import com.wit.be.user.dto.request.OnboardingRequest;
-import com.wit.be.user.service.UserService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;

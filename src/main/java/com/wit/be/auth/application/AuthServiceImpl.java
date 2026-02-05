@@ -9,9 +9,10 @@ import com.wit.be.infra.oauth.validator.KakaoOAuthValidator;
 import com.wit.be.infra.oauth.validator.OAuthValidator;
 import com.wit.be.infra.redis.RefreshTokenRepository;
 import com.wit.be.infra.security.jwt.JwtUtil;
+import com.wit.be.user.application.UserQueryService;
+import com.wit.be.user.application.UserService;
 import com.wit.be.user.domain.SocialType;
 import com.wit.be.user.domain.User;
-import com.wit.be.user.service.UserService;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -24,6 +25,7 @@ import org.springframework.transaction.annotation.Transactional;
 public class AuthServiceImpl implements AuthService {
 
     private final UserService userService;
+    private final UserQueryService userQueryService;
     private final JwtUtil jwtUtil;
     private final RefreshTokenRepository refreshTokenRepository;
 
@@ -45,7 +47,7 @@ public class AuthServiceImpl implements AuthService {
 
         // 2. 사용자 조회 또는 생성
         boolean isNewUser =
-                !userService.existsBySocialTypeAndProviderId(
+                !userQueryService.existsBySocialTypeAndProviderId(
                         request.socialType(), oAuthUserInfo.providerId());
 
         User user =

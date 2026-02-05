@@ -8,8 +8,8 @@ import com.wit.be.terms.dto.response.TermsResponse;
 import com.wit.be.terms.exception.TermsErrorCode;
 import com.wit.be.terms.repository.TermsRepository;
 import com.wit.be.terms.repository.UserTermsAgreementRepository;
+import com.wit.be.user.application.UserQueryService;
 import com.wit.be.user.domain.User;
-import com.wit.be.user.service.UserService;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -22,7 +22,7 @@ public class TermsService {
 
     private final TermsRepository termsRepository;
     private final UserTermsAgreementRepository userTermsAgreementRepository;
-    private final UserService userService;
+    private final UserQueryService userQueryService;
 
     /** 활성화된 약관 목록을 조회합니다. */
     public List<TermsResponse> getActiveTerms() {
@@ -32,7 +32,7 @@ public class TermsService {
     /** 약관 동의를 처리합니다. */
     @Transactional
     public void agreeToTerms(Long userId, TermsAgreementRequest request) {
-        User user = userService.findById(userId);
+        User user = userQueryService.findById(userId);
 
         List<Terms> requiredTerms = termsRepository.findByRequiredTrueAndActiveTrue();
 

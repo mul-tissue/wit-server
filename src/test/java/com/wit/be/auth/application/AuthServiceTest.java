@@ -15,11 +15,12 @@ import com.wit.be.infra.oauth.validator.GoogleOAuthValidator;
 import com.wit.be.infra.oauth.validator.KakaoOAuthValidator;
 import com.wit.be.infra.redis.RefreshTokenRepository;
 import com.wit.be.infra.security.jwt.JwtUtil;
+import com.wit.be.user.application.UserQueryService;
+import com.wit.be.user.application.UserService;
 import com.wit.be.user.domain.SocialType;
 import com.wit.be.user.domain.User;
 import com.wit.be.user.domain.UserRole;
 import com.wit.be.user.domain.UserStatus;
-import com.wit.be.user.service.UserService;
 import java.util.List;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -37,6 +38,7 @@ class AuthServiceTest {
     @InjectMocks private AuthServiceImpl authService;
 
     @Mock private UserService userService;
+    @Mock private UserQueryService userQueryService;
     @Mock private JwtUtil jwtUtil;
     @Mock private RefreshTokenRepository refreshTokenRepository;
     @Mock private KakaoOAuthValidator kakaoOAuthValidator;
@@ -52,7 +54,7 @@ class AuthServiceTest {
         User user = createTestUser(SocialType.KAKAO, "kakao123", "test@kakao.com");
 
         when(kakaoOAuthValidator.validate("test-token")).thenReturn(oAuthUserInfo);
-        when(userService.existsBySocialTypeAndProviderId(eq(SocialType.KAKAO), eq("kakao123")))
+        when(userQueryService.existsBySocialTypeAndProviderId(eq(SocialType.KAKAO), eq("kakao123")))
                 .thenReturn(false);
         when(userService.findOrCreateUser(
                         eq(SocialType.KAKAO), eq("kakao123"), eq("test@kakao.com")))
@@ -83,7 +85,8 @@ class AuthServiceTest {
         User user = createTestUser(SocialType.GOOGLE, "google456", "test@gmail.com");
 
         when(googleOAuthValidator.validate("google-id-token")).thenReturn(oAuthUserInfo);
-        when(userService.existsBySocialTypeAndProviderId(eq(SocialType.GOOGLE), eq("google456")))
+        when(userQueryService.existsBySocialTypeAndProviderId(
+                        eq(SocialType.GOOGLE), eq("google456")))
                 .thenReturn(true);
         when(userService.findOrCreateUser(
                         eq(SocialType.GOOGLE), eq("google456"), eq("test@gmail.com")))
