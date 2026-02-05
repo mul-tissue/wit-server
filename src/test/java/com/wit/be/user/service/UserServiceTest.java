@@ -10,6 +10,7 @@ import com.wit.be.user.domain.User;
 import com.wit.be.user.domain.UserStatus;
 import com.wit.be.user.exception.UserErrorCode;
 import com.wit.be.user.repository.UserRepository;
+import java.time.LocalDate;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -71,16 +72,16 @@ class UserServiceTest {
                 userService.findOrCreateUser(SocialType.KAKAO, "kakao789", "onboard@example.com");
         String nickname = "테스터";
         Gender gender = Gender.MALE;
-        Integer birthYear = 1990;
+        LocalDate birthDate = LocalDate.of(1990, 1, 1);
 
         // When
         User completedUser =
-                userService.completeOnboarding(user.getId(), nickname, gender, birthYear);
+                userService.completeOnboarding(user.getId(), nickname, gender, birthDate);
 
         // Then
         assertThat(completedUser.getNickname()).isEqualTo(nickname);
         assertThat(completedUser.getGender()).isEqualTo(gender);
-        assertThat(completedUser.getBirthYear()).isEqualTo(birthYear);
+        assertThat(completedUser.getBirthDate()).isEqualTo(birthDate);
         assertThat(completedUser.getStatus()).isEqualTo(UserStatus.ACTIVE);
     }
 
@@ -90,7 +91,8 @@ class UserServiceTest {
         // Given
         User user =
                 userService.findOrCreateUser(SocialType.APPLE, "apple999", "delete@example.com");
-        userService.completeOnboarding(user.getId(), "닉네임", Gender.FEMALE, 1995);
+        userService.completeOnboarding(
+                user.getId(), "닉네임", Gender.FEMALE, LocalDate.of(1995, 5, 15));
 
         // When
         userService.deleteUser(user.getId());
@@ -118,14 +120,17 @@ class UserServiceTest {
         // Given
         User user =
                 userService.findOrCreateUser(SocialType.KAKAO, "deleted123", "deleted@example.com");
-        userService.completeOnboarding(user.getId(), "닉네임", Gender.MALE, 1990);
+        userService.completeOnboarding(user.getId(), "닉네임", Gender.MALE, LocalDate.of(1990, 1, 1));
         userService.deleteUser(user.getId());
 
         // When & Then
         assertThatThrownBy(
                         () ->
                                 userService.completeOnboarding(
-                                        user.getId(), "새닉네임", Gender.FEMALE, 1995))
+                                        user.getId(),
+                                        "새닉네임",
+                                        Gender.FEMALE,
+                                        LocalDate.of(1995, 5, 15)))
                 .isInstanceOf(BusinessException.class)
                 .hasFieldOrPropertyWithValue("errorCode", UserErrorCode.USER_ALREADY_DELETED);
     }

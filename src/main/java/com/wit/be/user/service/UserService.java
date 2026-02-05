@@ -8,6 +8,7 @@ import com.wit.be.user.domain.UserRole;
 import com.wit.be.user.domain.UserStatus;
 import com.wit.be.user.exception.UserErrorCode;
 import com.wit.be.user.repository.UserRepository;
+import java.time.LocalDate;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -66,18 +67,19 @@ public class UserService {
      * @param userId 사용자 ID
      * @param nickname 닉네임
      * @param gender 성별
-     * @param birthYear 출생연도
+     * @param birthDate 생년월일
      * @return 온보딩이 완료된 사용자
      */
     @Transactional
-    public User completeOnboarding(Long userId, String nickname, Gender gender, Integer birthYear) {
+    public User completeOnboarding(
+            Long userId, String nickname, Gender gender, LocalDate birthDate) {
         User user = findById(userId);
 
         if (user.isDeleted()) {
             throw new BusinessException(UserErrorCode.USER_ALREADY_DELETED);
         }
 
-        user.completeOnboarding(nickname, gender, birthYear);
+        user.completeOnboarding(nickname, gender, birthDate);
         return user;
     }
 

@@ -10,6 +10,7 @@ import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
+import java.time.LocalDate;
 import lombok.AccessLevel;
 import lombok.Builder;
 import lombok.Getter;
@@ -45,7 +46,7 @@ public class User extends BaseTimeEntity {
     @Column(length = 10)
     private Gender gender;
 
-    private Integer birthYear;
+    private LocalDate birthDate;
 
     @Column(length = 500)
     private String profileImageUrl;
@@ -65,7 +66,7 @@ public class User extends BaseTimeEntity {
             String email,
             String nickname,
             Gender gender,
-            Integer birthYear,
+            LocalDate birthDate,
             String profileImageUrl,
             UserStatus status,
             UserRole role) {
@@ -75,17 +76,17 @@ public class User extends BaseTimeEntity {
         this.email = email;
         this.nickname = nickname;
         this.gender = gender;
-        this.birthYear = birthYear;
+        this.birthDate = birthDate;
         this.profileImageUrl = profileImageUrl;
         this.status = status != null ? status : UserStatus.PENDING;
         this.role = role != null ? role : UserRole.USER;
     }
 
     // 비즈니스 메서드
-    public void completeOnboarding(String nickname, Gender gender, Integer birthYear) {
+    public void completeOnboarding(String nickname, Gender gender, LocalDate birthDate) {
         this.nickname = nickname;
         this.gender = gender;
-        this.birthYear = birthYear;
+        this.birthDate = birthDate;
         this.status = UserStatus.ACTIVE;
     }
 

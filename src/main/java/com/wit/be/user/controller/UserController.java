@@ -22,7 +22,7 @@ public class UserController {
     public ResponseEntity<Void> completeOnboarding(
             @CurrentUserId Long userId, @Valid @RequestBody OnboardingRequest request) {
         userService.completeOnboarding(
-                userId, request.nickname(), request.gender(), request.birthYear());
+                userId, request.nickname(), request.gender(), request.birthDate());
         return ResponseEntity.ok().build();
     }
 }
