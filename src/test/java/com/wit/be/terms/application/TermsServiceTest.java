@@ -51,10 +51,9 @@ class TermsServiceTest {
         serviceTerms =
                 termsRepository.save(
                         Terms.builder()
-                                .type(TermsType.SERVICE)
+                                .type(TermsType.TERMS_OF_SERVICE)
                                 .title("서비스 이용약관")
-                                .content("서비스 이용약관 내용")
-                                .version("1.0")
+                                .version("v1.0")
                                 .required(true)
                                 .active(true)
                                 .build());
@@ -62,10 +61,9 @@ class TermsServiceTest {
         privacyTerms =
                 termsRepository.save(
                         Terms.builder()
-                                .type(TermsType.PRIVACY)
+                                .type(TermsType.PRIVACY_POLICY)
                                 .title("개인정보 처리방침")
-                                .content("개인정보 처리방침 내용")
-                                .version("1.0")
+                                .version("v1.0")
                                 .required(true)
                                 .active(true)
                                 .build());
@@ -75,8 +73,7 @@ class TermsServiceTest {
                         Terms.builder()
                                 .type(TermsType.MARKETING)
                                 .title("마케팅 정보 수신")
-                                .content("마케팅 정보 수신 동의 내용")
-                                .version("1.0")
+                                .version("v1.0")
                                 .required(false)
                                 .active(true)
                                 .build());
@@ -96,7 +93,7 @@ class TermsServiceTest {
         assertThat(activeTerms)
                 .extracting(TermsResponse::type)
                 .containsExactlyInAnyOrder(
-                        TermsType.SERVICE, TermsType.PRIVACY, TermsType.MARKETING);
+                        TermsType.TERMS_OF_SERVICE, TermsType.PRIVACY_POLICY, TermsType.MARKETING);
     }
 
     @Test

@@ -7,8 +7,8 @@ import lombok.RequiredArgsConstructor;
 @Getter
 @RequiredArgsConstructor
 public enum TermsType {
-    SERVICE("서비스 이용약관"),
-    PRIVACY("개인정보 처리방침"),
+    TERMS_OF_SERVICE("서비스 이용약관"),
+    PRIVACY_POLICY("개인정보 처리방침"),
     MARKETING("마케팅 정보 수신");
 
     private final String value;

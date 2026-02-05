@@ -30,14 +30,11 @@ public class Terms extends BaseTimeEntity {
     private String publicId;
 
     @Enumerated(EnumType.STRING)
-    @Column(nullable = false, length = 20)
+    @Column(nullable = false, length = 50)
     private TermsType type;
 
     @Column(nullable = false, length = 100)
     private String title;
-
-    @Column(nullable = false, columnDefinition = "TEXT")
-    private String content;
 
     @Column(nullable = false, length = 20)
     private String version;
@@ -49,17 +46,10 @@ public class Terms extends BaseTimeEntity {
     private boolean active;
 
     @Builder
-    private Terms(
-            TermsType type,
-            String title,
-            String content,
-            String version,
-            boolean required,
-            boolean active) {
+    private Terms(TermsType type, String title, String version, boolean required, boolean active) {
         this.publicId = PublicIdGenerator.generate();
         this.type = type;
         this.title = title;
-        this.content = content;
         this.version = version;
         this.required = required;
         this.active = active;
