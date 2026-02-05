@@ -27,6 +27,18 @@ public class UserServiceImpl implements UserService {
     public User findOrCreateUser(SocialType socialType, String providerId, String email) {
         return userRepository
                 .findBySocialTypeAndProviderId(socialType, providerId)
+                .map(
+                        user -> {
+                            // 비활성 사용자가 재로그인하면 활성화
+                            if (user.getStatus() == UserStatus.INACTIVE) {
+                                log.info(
+                                        "Reactivating inactive user - userId: {}, email: {}",
+                                        user.getId(),
+                                        user.getEmail());
+                                user.activate();
+                            }
+                            return user;
+                        })
                 .orElseGet(() -> createUser(socialType, providerId, email));
     }
 
