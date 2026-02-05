@@ -13,6 +13,7 @@ import org.springframework.security.config.annotation.web.configurers.AbstractHt
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
+import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.method.support.HandlerMethodArgumentResolver;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 
@@ -24,6 +25,7 @@ public class SecurityConfig implements WebMvcConfigurer {
     private final JwtFilter jwtFilter;
     private final JwtExceptionFilter jwtExceptionFilter;
     private final CurrentUserIdResolver currentUserIdResolver;
+    private final CorsConfigurationSource corsConfigurationSource;
 
     private static final String[] WHITE_LIST = {
         // Actuator & Error
@@ -45,6 +47,7 @@ public class SecurityConfig implements WebMvcConfigurer {
         http.httpBasic(AbstractHttpConfigurer::disable)
                 .csrf(AbstractHttpConfigurer::disable)
                 .formLogin(AbstractHttpConfigurer::disable)
+                .cors(cors -> cors.configurationSource(corsConfigurationSource))
                 .sessionManagement(
                         session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .headers(headers -> headers.frameOptions(frameOptions -> frameOptions.sameOrigin()))
