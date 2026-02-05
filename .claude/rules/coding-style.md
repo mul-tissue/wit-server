@@ -130,7 +130,7 @@ public class UserService {
 - Controllers: `*Controller.java`
 - Services: `*Service.java` (Command), `*QueryService.java` (Query)
 - Repositories: `*Repository.java`, `*QueryRepository.java`
-- DTOs: `*Request.java`, `*Response.java`, `*DTO.java`
+- DTOs: `dto/request/*Request.java`, `dto/response/*Response.java`, `dto/*Dto.java`
 - Events: `*Event.java` (past tense, e.g., `UserCreatedEvent`)
 
 ## Package Structure (Per Module)
@@ -148,10 +148,12 @@ com.wit.<module>/
 │   └── <Entity>QueryRepository.java
 ├── event/
 │   └── <Entity>CreatedEvent.java
-└── dto/
-    ├── <Entity>Request.java
-    ├── <Entity>Response.java
-    └── <Entity>DTO.java
+├── dto/
+│   ├── request/
+│   │   └── Create<Entity>Request.java
+│   ├── response/
+│   │   └── <Entity>Response.java
+│   └── <Entity><Purpose>Dto.java     # 중첩/공용
 ```
 
 ## Controller Pattern
@@ -281,15 +283,41 @@ public class GlobalExceptionHandler {
 ```
 
 ## DTO Pattern
+
+### Package Structure
+```
+dto/
+├── request/
+│   ├── CreateUserRequest.java
+│   └── UpdateUserRequest.java
+├── response/
+│   ├── UserResponse.java
+│   └── UserDetailResponse.java
+└── UserProfileDto.java          # 중첩/공용 DTO
+```
+
+### Naming Convention
+
+| Type | Pattern | Example |
+|------|---------|---------|
+| Request | `<Action><Entity>Request` | `CreateUserRequest`, `UpdateCompanionRequest` |
+| Response | `<Entity>Response`, `<Entity><Detail>Response` | `UserResponse`, `CompanionDetailResponse` |
+| Nested/Shared DTO | `<Parent><Child>Dto` | `CompanionDestinationDto`, `FeedImageDto` |
+| Inter-module DTO | `<Entity><Purpose>Dto` | `UserProfileDto`, `CompanionSummaryDto` |
+
+### Request DTO
 ```java
-// Request DTO (use records)
-public record UserRequest(
+// dto/request/CreateUserRequest.java
+public record CreateUserRequest(
     @NotBlank String email,
     @NotBlank String name,
     @Size(min = 8) String password
 ) {}
+```
 
-// Response DTO
+### Response DTO
+```java
+// dto/response/UserResponse.java
 public record UserResponse(
     Long id,
     String email,
@@ -305,9 +333,46 @@ public record UserResponse(
         );
     }
 }
+```
 
-// Query DTO (for inter-module communication)
-public record UserProfileDTO(
+### Nested DTO (별도 파일)
+```java
+// dto/CompanionDestinationDto.java
+public record CompanionDestinationDto(
+    String city,
+    String country,
+    LocalDate arrivalDate,
+    LocalDate departureDate
+) {
+    public static CompanionDestinationDto from(CompanionDestination destination) {
+        return new CompanionDestinationDto(
+            destination.getCity(),
+            destination.getCountry(),
+            destination.getArrivalDate(),
+            destination.getDepartureDate()
+        );
+    }
+}
+
+// dto/request/CreateCompanionRequest.java
+public record CreateCompanionRequest(
+    @NotBlank String title,
+    @NotBlank String description,
+    @NotEmpty List<CompanionDestinationDto> destinations  // 별도 파일 참조
+) {}
+
+// dto/response/CompanionResponse.java
+public record CompanionResponse(
+    Long id,
+    String title,
+    List<CompanionDestinationDto> destinations  // 재사용
+) {}
+```
+
+### Inter-module DTO
+```java
+// dto/UserProfileDto.java (다른 모듈에서 사용)
+public record UserProfileDto(
     Long id,
     String name,
     String profileImageUrl
