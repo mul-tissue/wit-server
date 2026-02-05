@@ -12,3 +12,26 @@ spring:
 
   flyway:
     enabled: false
+
+  data:
+    redis:
+      host: localhost
+      port: 6379
+
+# JWT Configuration
+jwt:
+  secret: test-secret-key-for-unit-testing-minimum-256-bits-required-here
+  issuer: wit-test
+  access-token-expiration: 3600000
+  refresh-token-expiration: 2592000000
+
+# OAuth Configuration (테스트용 mock URL)
+oauth:
+  kakao:
+    user-info-url: https://kapi.kakao.com
+  google:
+    token-info-url: https://oauth2.googleapis.com
+  apple:
+    keys-url: https://appleid.apple.com/auth/keys
+    issuer: https://appleid.apple.com
+    audience: test-audience

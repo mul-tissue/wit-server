@@ -5,8 +5,26 @@ spring:
   profiles:
     active: local
 
+# JWT Configuration
+jwt:
+  secret: ${JWT_SECRET:wit-local-development-secret-key-minimum-256-bits-required}
+  issuer: ${JWT_ISSUER:wit}
+  access-token-expiration: ${JWT_ACCESS_EXPIRATION:3600000}  # 1시간
+  refresh-token-expiration: ${JWT_REFRESH_EXPIRATION:2592000000}  # 30일
+
+# OAuth Configuration
+oauth:
+  kakao:
+    user-info-url: https://kapi.kakao.com
+  google:
+    token-info-url: https://oauth2.googleapis.com
+  apple:
+    keys-url: https://appleid.apple.com/auth/keys
+    issuer: https://appleid.apple.com
+    audience: ${APPLE_CLIENT_ID:}
+
 ---
-# Local Profile (H2)
+# Local Profile (H2 + Embedded Redis)
 spring:
   config:
     activate:
@@ -36,6 +54,11 @@ spring:
     locations: classpath:db/migration
     baseline-on-migrate: true
 
+  data:
+    redis:
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
+
 ---
 # Development Profile (PostgreSQL)
 spring:
@@ -63,8 +86,18 @@ spring:
     locations: classpath:db/migration
     baseline-on-migrate: true
 
+  data:
+    redis:
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
+      password: ${REDIS_PASSWORD:}
+      ssl:
+        enabled: ${REDIS_SSL_ENABLED:false}
+      timeout: ${REDIS_TIMEOUT:2000ms}
+      connect-timeout: ${REDIS_CONNECT_TIMEOUT:2000ms}
+
 ---
-# Production Profile (PostgreSQL)
+# Production Profile (PostgreSQL + Redis)
 spring:
   config:
     activate:
@@ -88,3 +121,13 @@ spring:
     enabled: true
     locations: classpath:db/migration
     baseline-on-migrate: false
+
+  data:
+    redis:
+      host: ${REDIS_HOST}
+      port: ${REDIS_PORT:6379}
+      password: ${REDIS_PASSWORD:}
+      ssl:
+        enabled: ${REDIS_SSL_ENABLED:true}
+      timeout: ${REDIS_TIMEOUT:2000ms}
+      connect-timeout: ${REDIS_CONNECT_TIMEOUT:2000ms}
