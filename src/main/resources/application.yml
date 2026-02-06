@@ -1,3 +1,8 @@
 spring:
   application:
-    name: be
+    name: wit
+  profiles:
+    include:
+      - jwt
+      - oauth
+    active: local
