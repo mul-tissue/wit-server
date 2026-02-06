@@ -15,6 +15,7 @@ Create a detailed implementation plan for: $ARGUMENTS
 3. **Identify Risks** - Surface potential issues, blockers, and dependencies
 4. **Create Step Plan** - Break down implementation into phases
 5. **Wait for Confirmation** - MUST receive user approval before proceeding
+6. **Save Plan** - After user confirms, append to `docs/plan.md`
 
 ## Output Format
 
@@ -57,3 +58,35 @@ Create a detailed implementation plan for: $ARGUMENTS
 **WAITING FOR CONFIRMATION**: Proceed with this plan? (yes/no/modify)
 
 **CRITICAL**: Do NOT write any code until the user explicitly confirms.
+
+---
+
+## After User Confirms
+
+Append the plan to `docs/plan.md` (existing API spec document):
+
+1. Add a new section at the end with this format:
+
+```markdown
+---
+
+## Implementation Plan: [Feature Name]
+
+> 작성일: YYYY-MM-DD
+
+### Requirements
+[From above]
+
+### Implementation Phases
+[From above]
+
+### Risks
+[From above]
+
+### Status
+- [ ] Phase 1
+- [ ] Phase 2
+- ...
+```
+
+2. Notify user: "Plan saved to `docs/plan.md`"
