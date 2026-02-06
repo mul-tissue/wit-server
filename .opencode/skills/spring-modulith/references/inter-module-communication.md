@@ -2,21 +2,21 @@
 
 ## Rule: Modules Must Not Directly Access Each Other's Internal Details
 
-### ❌ FORBIDDEN
+### FORBIDDEN
 ```java
 // In FeedService
 @Service
 public class FeedService {
-    private final UserRepository userRepository; // ❌ Accessing other module's repository
+    private final UserRepository userRepository; // Accessing other module's repository
     
     public void createFeed(FeedRequest request) {
-        User user = userRepository.findById(request.userId()); // ❌ Direct entity access
+        User user = userRepository.findById(request.userId()); // Direct entity access
         // ...
     }
 }
 ```
 
-### ✅ ALLOWED: Query via QueryService
+### ALLOWED: Query via QueryService
 
 ```java
 // In FeedQueryService
@@ -24,8 +24,8 @@ public class FeedService {
 @Transactional(readOnly = true)
 public class FeedQueryService {
     private final FeedQueryRepository feedQueryRepository;
-    private final UserQueryService userQueryService; // ✅ Use QueryService
-    private final CompanionQueryService companionQueryService; // ✅ Multiple modules OK
+    private final UserQueryService userQueryService; // Use QueryService
+    private final CompanionQueryService companionQueryService; // Multiple modules OK
     
     public FeedDetailDTO getFeedDetail(Long feedId) {
         FeedDTO feed = feedQueryRepository.findById(feedId)
@@ -44,6 +44,8 @@ public class FeedQueryService {
 }
 ```
 
+---
+
 ## Pattern 1: Synchronous Query (for Read operations)
 
 ### Use Case
@@ -53,19 +55,21 @@ When you need current state of another domain's data.
 
 ```java
 // user module - exposes query service
-package com.wit.user.service;
+package com.wit.user.application;
 
 @Service
 @Transactional(readOnly = true)
-public class UserQueryService {
+public class UserQueryServiceImpl implements UserQueryService {
     
     // This method is designed for inter-module queries
+    @Override
     public UserProfileDTO getProfile(Long userId) {
         return userQueryRepository.findProfileById(userId)
             .orElseThrow(() -> new UserNotFoundException("User not found: " + userId));
     }
     
     // Batch query for performance
+    @Override
     public Map<Long, UserProfileDTO> getProfiles(List<Long> userIds) {
         return userQueryRepository.findProfilesByIds(userIds)
             .stream()
@@ -76,15 +80,16 @@ public class UserQueryService {
 
 ```java
 // feed module - uses query service
-package com.wit.feed.service;
+package com.wit.feed.application;
 
 @Service
 @Transactional(readOnly = true)
-public class FeedQueryService {
+public class FeedQueryServiceImpl implements FeedQueryService {
     
     private final FeedQueryRepository feedQueryRepository;
     private final UserQueryService userQueryService; // Injected from user module
     
+    @Override
     public List<FeedWithAuthorDTO> getRecentFeeds(Pageable pageable) {
         List<FeedDTO> feeds = feedQueryRepository.findRecent(pageable);
         
@@ -106,10 +111,12 @@ public class FeedQueryService {
 ```
 
 ### Key Points
-- ✅ Returns DTO, never Entity
-- ✅ Read-only operation
-- ✅ Synchronous (immediate response)
-- ✅ Use batch queries to avoid N+1 problems
+- Returns DTO, never Entity
+- Read-only operation
+- Synchronous (immediate response)
+- Use batch queries to avoid N+1 problems
+
+---
 
 ## Pattern 2: Event-Driven (for Write operations)
 
@@ -120,15 +127,16 @@ When a domain change should trigger actions in other domains.
 
 ```java
 // user module - publishes event after creation
-package com.wit.user.service;
+package com.wit.user.application;
 
 @Service
 @Transactional
-public class UserService {
+public class UserServiceImpl implements UserService {
     
     private final UserRepository userRepository;
     private final ApplicationEventPublisher eventPublisher;
     
+    @Override
     public UserResponse create(UserRequest request) {
         User user = User.builder()
             .email(request.email())
@@ -172,11 +180,13 @@ public class UserEventListener {
 ```
 
 ### Key Points
-- ✅ Events are past tense (facts): `UserCreatedEvent`, not `CreateUserEvent`
-- ✅ Fire-and-forget (no return value)
-- ✅ Asynchronous processing
-- ✅ Multiple listeners can react to same event
-- ✅ Easy to migrate to Kafka/RabbitMQ later
+- Events are past tense (facts): `UserCreatedEvent`, not `CreateUserEvent`
+- Fire-and-forget (no return value)
+- Asynchronous processing
+- Multiple listeners can react to same event
+- Easy to migrate to Kafka/RabbitMQ later
+
+---
 
 ## Pattern 3: Command + Event Flow
 
@@ -184,15 +194,16 @@ public class UserEventListener {
 
 ```java
 // companion module - service
-package com.wit.companion.service;
+package com.wit.companion.application;
 
 @Service
 @Transactional
-public class CompanionService {
+public class CompanionServiceImpl implements CompanionService {
     
     private final CompanionRepository companionRepository;
     private final ApplicationEventPublisher eventPublisher;
     
+    @Override
     public CompanionResponse create(CompanionRequest request) {
         Companion companion = Companion.builder()
             .title(request.title())
@@ -260,15 +271,17 @@ public class CompanionEventListener {
 }
 ```
 
+---
+
 ## Pattern 4: Complex Flow with Multiple Modules
 
 ### Example: Feed publish flow
 
 ```
 1. User publishes feed (feed module)
-   ↓
+   |
 2. FeedPublishedEvent emitted
-   ↓
+   |
 3. Multiple listeners react:
    - notification: notify followers
    - companion: check if feed relates to companion
@@ -279,12 +292,13 @@ public class CompanionEventListener {
 // feed module
 @Service
 @Transactional
-public class FeedService {
+public class FeedServiceImpl implements FeedService {
     
     private final FeedRepository feedRepository;
     private final ApplicationEventPublisher eventPublisher;
     private final UserQueryService userQueryService; // Query user info
     
+    @Override
     public FeedResponse publish(FeedRequest request) {
         // Validate user exists
         UserProfileDTO author = userQueryService.getProfile(request.authorId());
@@ -336,40 +350,42 @@ public class CompanionEventListener {
 }
 ```
 
+---
+
 ## Anti-Patterns to Avoid
 
-### ❌ Don't Return Values from Events
+### Don't Return Values from Events
 
 ```java
 // Bad - events shouldn't return values
 @EventListener
 public boolean handleUserCreated(UserCreatedEvent event) {
-    return notificationService.send(event.userId()); // ❌ Wrong
+    return notificationService.send(event.userId()); // Wrong
 }
 ```
 
-### ❌ Don't Call Other Module's Command Service
+### Don't Call Other Module's Command Service
 
 ```java
 // Bad - modules shouldn't directly modify other modules
 @Service
 public class FeedService {
-    private final NotificationService notificationService; // ❌ Command service
+    private final NotificationService notificationService; // Command service
     
     public void publish(FeedRequest request) {
         Feed feed = save(request);
-        notificationService.create(...); // ❌ Direct modification
+        notificationService.create(...); // Direct modification
     }
 }
 ```
 
-### ❌ Don't Share Entities Between Modules
+### Don't Share Entities Between Modules
 
 ```java
 // Bad - exposing internal entity
 @Service
 public class UserQueryService {
-    public User findById(Long id) { // ❌ Returns entity
+    public User findById(Long id) { // Returns entity
         return userRepository.findById(id);
     }
 }
@@ -377,11 +393,13 @@ public class UserQueryService {
 // Good - return DTO
 @Service
 public class UserQueryService {
-    public UserDTO findById(Long id) { // ✅ Returns DTO
+    public UserDTO findById(Long id) { // Returns DTO
         return userQueryRepository.findDTOById(id);
     }
 }
 ```
+
+---
 
 ## Testing Inter-Module Communication
 
@@ -434,6 +452,8 @@ class UserEventTest {
     }
 }
 ```
+
+---
 
 ## Migration to MSA
 

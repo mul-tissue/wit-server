@@ -1,9 +1,9 @@
 ---
-name: coding-style
-description: Java and Spring Boot coding standards following Google Java Style Guide
+name: coding-convention
+description: Java/Spring Boot coding standards including Google Java Style Guide, package structure, DTO naming, Controller/Service/Repository patterns, and error handling conventions. Load this skill before writing any code.
 ---
 
-# Coding Style
+# Coding Convention
 
 ## Google Java Style Guide
 **Follow Google Java Style Guide**: https://google.github.io/styleguide/javaguide.html
@@ -25,32 +25,26 @@ Key points:
 - Use Lombok to reduce boilerplate (`@Getter`, `@Builder`, etc.)
 - Use records for DTOs when appropriate
 
-## ❌ NO SETTERS in Domain Entities
+---
+
+## NO SETTERS in Domain Entities
 
 **Setter methods are prohibited in domain entities.** Use business methods instead.
 
-### ❌ BAD - Using Setters
+### BAD - Using Setters
 ```java
 @Entity
 public class User {
-    @Setter // ❌ NEVER use @Setter
+    @Setter // NEVER use @Setter
     private String nickname;
     
-    public void setNickname(String nickname) { // ❌ NEVER
+    public void setNickname(String nickname) { // NEVER
         this.nickname = nickname;
     }
-    
-    public void setStatus(UserStatus status) { // ❌ NEVER
-        this.status = status;
-    }
 }
-
-// Usage
-user.setNickname("newName");
-user.setStatus(UserStatus.ACTIVE);
 ```
 
-### ✅ GOOD - Using Business Methods
+### GOOD - Using Business Methods
 ```java
 @Entity
 @Getter
@@ -59,13 +53,13 @@ public class User {
     private String nickname;
     private UserStatus status;
     
-    // ✅ Business method with clear intent
+    // Business method with clear intent
     public void updateProfile(String nickname, String profileImagePath) {
         this.nickname = nickname;
         this.profileImagePath = profileImagePath;
     }
     
-    // ✅ State transition with validation
+    // State transition with validation
     public void activate() {
         if (this.status != UserStatus.PENDING_ONBOARDING) {
             throw new IllegalStateException("Cannot activate user in status: " + this.status);
@@ -73,23 +67,12 @@ public class User {
         this.status = UserStatus.ACTIVE;
     }
     
-    // ✅ Explicit withdrawal with timestamp
+    // Explicit withdrawal with timestamp
     public void withdraw() {
         this.status = UserStatus.WITHDRAWN;
         this.withdrawnAt = LocalDateTime.now();
     }
-    
-    // ✅ Record login time
-    public void recordLogin() {
-        this.lastLoginAt = LocalDateTime.now();
-    }
 }
-
-// Usage - clear business intent
-user.updateProfile("newName", "/images/profile.jpg");
-user.activate();
-user.withdraw();
-user.recordLogin();
 ```
 
 ### Why No Setters?
@@ -98,43 +81,10 @@ user.recordLogin();
 3. **Encapsulation**: Internal state changes are controlled
 4. **Auditability**: Side effects (timestamps, events) are handled consistently
 
-## Spring Boot Patterns
-
-### Dependency Injection
-```java
-// ✅ Constructor injection (preferred)
-@Service
-public class UserService {
-    private final UserRepository userRepository;
-    
-    public UserService(UserRepository userRepository) {
-        this.userRepository = userRepository;
-    }
-}
-
-// ❌ Field injection (avoid)
-@Service
-public class UserService {
-    @Autowired
-    private UserRepository userRepository;
-}
-```
-
-### Layer Responsibilities
-- **Controller**: HTTP request/response, validation
-- **Service**: Business logic, transactions
-- **Repository**: Data access only
-- **Domain**: Business rules, entities
-
-### File Naming
-- Controllers: `*Controller.java`
-- Services: `*Service.java` (interface), `*ServiceImpl.java` (implementation)
-- Query Services: `*QueryService.java` (interface), `*QueryServiceImpl.java` (implementation)
-- Repositories: `*Repository.java`, `*QueryRepository.java`
-- DTOs: `dto/request/*Request.java`, `dto/response/*Response.java`, `dto/*Dto.java`
-- Events: `*Event.java` (past tense, e.g., `UserCreatedEvent`)
+---
 
 ## Package Structure (Per Module)
+
 ```
 com.wit.<module>/
 ├── api/
@@ -158,10 +108,51 @@ com.wit.<module>/
 │   │   └── Create<Entity>Request.java
 │   ├── response/
 │   │   └── <Entity>Response.java
-│   └── <Entity><Purpose>Dto.java     # 중첩/공용
+│   └── <Entity><Purpose>Dto.java     # nested/shared
 ```
 
+---
+
+## Spring Boot Patterns
+
+### Dependency Injection
+```java
+// Constructor injection (preferred)
+@Service
+public class UserService {
+    private final UserRepository userRepository;
+    
+    public UserService(UserRepository userRepository) {
+        this.userRepository = userRepository;
+    }
+}
+
+// Field injection (avoid)
+@Service
+public class UserService {
+    @Autowired // AVOID
+    private UserRepository userRepository;
+}
+```
+
+### Layer Responsibilities
+- **Controller**: HTTP request/response, validation
+- **Service**: Business logic, transactions
+- **Repository**: Data access only
+- **Domain**: Business rules, entities
+
+### File Naming
+- Controllers: `*Controller.java`
+- Services: `*Service.java` (interface), `*ServiceImpl.java` (implementation)
+- Query Services: `*QueryService.java` (interface), `*QueryServiceImpl.java` (implementation)
+- Repositories: `*Repository.java`, `*QueryRepository.java`
+- DTOs: `dto/request/*Request.java`, `dto/response/*Response.java`, `dto/*Dto.java`
+- Events: `*Event.java` (past tense, e.g., `UserCreatedEvent`)
+
+---
+
 ## Controller Pattern
+
 ```java
 @RestController
 @RequestMapping("/v1/users")
@@ -189,7 +180,10 @@ public class UserController {
 }
 ```
 
+---
+
 ## Service Pattern (Command) - Interface + Implementation
+
 ```java
 // Service Interface
 public interface UserService {
@@ -222,7 +216,10 @@ public class UserServiceImpl implements UserService {
 }
 ```
 
+---
+
 ## Service Pattern (Query) - Interface + Implementation
+
 ```java
 // Query Service Interface
 public interface UserQueryService {
@@ -241,56 +238,13 @@ public class UserQueryServiceImpl implements UserQueryService {
     @Override
     public UserDTO findById(Long id) {
         User user = userRepository.findById(id)
-            .orElseThrow(() -> new BusinessException(UserErrorCode.USER_NOT_FOUND));
+            .orElseThrow(() -> new CustomException(UserErrorCode.USER_NOT_FOUND));
         return UserDTO.from(user);
     }
 }
 ```
 
-## Event Pattern
-```java
-// Event class
-public record UserCreatedEvent(Long userId) {
-}
-
-// Event listener (in another module)
-@Component
-public class NotificationEventListener {
-    
-    private final NotificationService notificationService;
-    
-    public NotificationEventListener(NotificationService notificationService) {
-        this.notificationService = notificationService;
-    }
-    
-    @EventListener
-    public void handleUserCreated(UserCreatedEvent event) {
-        notificationService.sendWelcomeNotification(event.userId());
-    }
-}
-```
-
-## Exception Handling
-```java
-@RestControllerAdvice
-public class GlobalExceptionHandler {
-    
-    @ExceptionHandler(EntityNotFoundException.class)
-    public ResponseEntity<ErrorResponse> handleNotFound(EntityNotFoundException e) {
-        return ResponseEntity.status(HttpStatus.NOT_FOUND)
-            .body(new ErrorResponse(e.getMessage()));
-    }
-    
-    @ExceptionHandler(MethodArgumentNotValidException.class)
-    public ResponseEntity<ErrorResponse> handleValidation(MethodArgumentNotValidException e) {
-        String message = e.getBindingResult().getFieldErrors().stream()
-            .map(FieldError::getDefaultMessage)
-            .collect(Collectors.joining(", "));
-        return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-            .body(new ErrorResponse(message));
-    }
-}
-```
+---
 
 ## DTO Pattern
 
@@ -303,7 +257,7 @@ dto/
 ├── response/
 │   ├── UserResponse.java
 │   └── UserDetailResponse.java
-└── UserProfileDto.java          # 중첩/공용 DTO
+└── UserProfileDto.java          # nested/shared DTO
 ```
 
 ### Naming Convention
@@ -345,7 +299,7 @@ public record UserResponse(
 }
 ```
 
-### Nested DTO (별도 파일)
+### Nested DTO (separate file)
 ```java
 // dto/CompanionDestinationDto.java
 public record CompanionDestinationDto(
@@ -363,33 +317,116 @@ public record CompanionDestinationDto(
         );
     }
 }
-
-// dto/request/CreateCompanionRequest.java
-public record CreateCompanionRequest(
-    @NotBlank String title,
-    @NotBlank String description,
-    @NotEmpty List<CompanionDestinationDto> destinations  // 별도 파일 참조
-) {}
-
-// dto/response/CompanionResponse.java
-public record CompanionResponse(
-    Long id,
-    String title,
-    List<CompanionDestinationDto> destinations  // 재사용
-) {}
 ```
 
-### Inter-module DTO
+---
+
+## Event Pattern
+
 ```java
-// dto/UserProfileDto.java (다른 모듈에서 사용)
-public record UserProfileDto(
-    Long id,
-    String name,
-    String profileImageUrl
-) {}
+// Event class (past tense)
+public record UserCreatedEvent(Long userId) {}
+
+// Event listener (in another module)
+@Component
+public class NotificationEventListener {
+    
+    private final NotificationService notificationService;
+    
+    public NotificationEventListener(NotificationService notificationService) {
+        this.notificationService = notificationService;
+    }
+    
+    @EventListener
+    public void handleUserCreated(UserCreatedEvent event) {
+        notificationService.sendWelcomeNotification(event.userId());
+    }
+}
 ```
+
+---
+
+## Response & Error Handling
+
+### Error Response Format
+```json
+{
+  "errorName": "USER_NOT_FOUND",
+  "message": "사용자를 찾을 수 없습니다."
+}
+```
+
+### ErrorCode Interface
+```java
+public interface ErrorCode {
+    HttpStatus getHttpStatus();
+    String getMessage();
+    String getErrorName();  // enum name() return
+}
+```
+
+### Domain ErrorCode Example
+```java
+@Getter
+@AllArgsConstructor
+public enum UserErrorCode implements ErrorCode {
+    USER_NOT_FOUND(HttpStatus.NOT_FOUND, "사용자를 찾을 수 없습니다."),
+    DUPLICATE_NICKNAME(HttpStatus.CONFLICT, "이미 사용 중인 닉네임입니다."),
+    INVALID_USER_STATUS(HttpStatus.BAD_REQUEST, "유효하지 않은 사용자 상태입니다."),
+    ;
+
+    private final HttpStatus httpStatus;
+    private final String message;
+
+    @Override
+    public String getErrorName() {
+        return this.name();
+    }
+}
+```
+
+### Throwing Exceptions
+```java
+// In Service
+public User findById(Long id) {
+    return userRepository.findById(id)
+        .orElseThrow(() -> new CustomException(UserErrorCode.USER_NOT_FOUND));
+}
+```
+
+### Controller Response
+```java
+@RestController
+@RequestMapping("/v1/users")
+@RequiredArgsConstructor
+public class UserController {
+
+    private final UserService userService;
+
+    @PostMapping
+    public ResponseEntity<UserResponse> create(@Valid @RequestBody UserCreateRequest request) {
+        UserResponse response = userService.create(request);
+        return ResponseEntity.status(HttpStatus.CREATED).body(response);
+    }
+
+    @GetMapping("/{id}")
+    public ResponseEntity<UserResponse> getById(@PathVariable Long id) {
+        UserResponse response = userQueryService.findById(id);
+        return ResponseEntity.ok(response);
+    }
+
+    @DeleteMapping("/{id}")
+    public ResponseEntity<Void> delete(@PathVariable Long id) {
+        userService.delete(id);
+        return ResponseEntity.noContent().build();
+    }
+}
+```
+
+---
 
 ## General Rules
+
 - Prefer composition over inheritance
 - Use Optional for nullable returns (except collections)
 - Don't return null, throw exceptions or return empty collections

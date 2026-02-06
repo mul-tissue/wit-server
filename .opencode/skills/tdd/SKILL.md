@@ -1,6 +1,6 @@
 ---
 name: tdd
-description: Test-driven development rules and practices
+description: Test-driven development rules including Red-Green-Refactor workflow, Given-When-Then test structure, coverage requirements, and testing patterns for Spring Boot applications. Load when doing TDD or writing tests.
 ---
 
 # TDD Rules
@@ -9,6 +9,8 @@ description: Test-driven development rules and practices
 1. **Write tests BEFORE implementation**
 2. **Minimum 70% code coverage** (measure with JaCoCo)
 3. **All API endpoints must have integration tests**
+
+---
 
 ## TDD Workflow (Red-Green-Refactor)
 
@@ -58,34 +60,38 @@ public class UserService {
 }
 ```
 
-## Test Structure (Given-When-Then) - 필수!
+---
 
-**모든 테스트는 반드시 Given-When-Then 구조를 따라야 합니다.**
+## Test Structure (Given-When-Then) - MANDATORY
+
+**All tests must follow Given-When-Then structure.**
 
 ```java
 @Test
 @DisplayName("유효한 요청으로 사용자 생성 시 사용자가 반환된다")
 void create_ValidRequest_ReturnsUser() {
-    // given - 테스트 데이터 및 Mock 설정
+    // given - test data and mock setup
     UserCreateRequest request = new UserCreateRequest("test@example.com", "John");
     User savedUser = User.builder().id(1L).email(request.email()).build();
     given(userRepository.save(any(User.class))).willReturn(savedUser);
     
-    // when - 테스트 대상 메서드 실행
+    // when - execute method under test
     UserResponse response = userService.create(request);
     
-    // then - 결과 검증
+    // then - verify results
     assertThat(response.id()).isEqualTo(1L);
     assertThat(response.email()).isEqualTo("test@example.com");
     then(userRepository).should().save(any(User.class));
 }
 ```
 
-### Given-When-Then 규칙
-- **given**: 테스트 전제 조건 설정 (데이터, Mock)
-- **when**: 테스트 대상 메서드 **단 하나만** 실행
-- **then**: 결과 검증 (assertThat, verify)
-- 주석으로 `// given`, `// when`, `// then` 반드시 표시
+### Given-When-Then Rules
+- **given**: Set up preconditions (data, mocks)
+- **when**: Execute target method **exactly once**
+- **then**: Verify results (assertThat, verify)
+- Comments `// given`, `// when`, `// then` are **required**
+
+---
 
 ## Test Types
 
@@ -105,19 +111,19 @@ class UserServiceTest {
     private ApplicationEventPublisher eventPublisher;
     
     @InjectMocks
-    private UserService userService;
+    private UserServiceImpl userService;
     
     @Test
     void shouldCreateUser_whenValidRequest() {
-        // Given
+        // given
         UserRequest request = new UserRequest("test@example.com", "John", "password123");
         User savedUser = User.builder().id(1L).email(request.email()).build();
         when(userRepository.save(any(User.class))).thenReturn(savedUser);
         
-        // When
+        // when
         UserResponse response = userService.create(request);
         
-        // Then
+        // then
         assertThat(response.id()).isEqualTo(1L);
         verify(userRepository).save(any(User.class));
         verify(eventPublisher).publishEvent(any(UserCreatedEvent.class));
@@ -143,10 +149,10 @@ class UserControllerIntegrationTest {
     
     @Test
     void shouldCreateUser_whenValidRequest() throws Exception {
-        // Given
+        // given
         UserRequest request = new UserRequest("test@example.com", "John", "password123");
         
-        // When & Then
+        // when & then
         mockMvc.perform(post("/api/users")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(request)))
@@ -167,37 +173,41 @@ class UserRepositoryTest {
     
     @Test
     void shouldSaveUser() {
-        // Given
+        // given
         User user = User.builder()
             .email("test@example.com")
             .name("John")
             .build();
         
-        // When
+        // when
         User saved = userRepository.save(user);
         
-        // Then
+        // then
         assertThat(saved.getId()).isNotNull();
         assertThat(saved.getEmail()).isEqualTo("test@example.com");
     }
 }
 ```
 
+---
+
 ## Testing Guidelines
 
 ### What to Test
-- ✅ Business logic in Services
-- ✅ API endpoints (integration tests)
-- ✅ Repository queries (custom queries)
-- ✅ Validation logic
-- ✅ Exception handling
-- ✅ Event publishing and listening
+- Business logic in Services
+- API endpoints (integration tests)
+- Repository queries (custom queries)
+- Validation logic
+- Exception handling
+- Event publishing and listening
 
 ### What NOT to Test
-- ❌ Simple getters/setters
-- ❌ Framework code (Spring Boot auto-configuration)
-- ❌ Third-party libraries
-- ❌ DTOs with no logic
+- Simple getters/setters
+- Framework code (Spring Boot auto-configuration)
+- Third-party libraries
+- DTOs with no logic
+
+---
 
 ## Test Naming Convention
 ```java
@@ -212,29 +222,34 @@ void shouldThrowException_whenUserNotFound() { }
 void shouldPublishEvent_whenUserCreated() { }
 ```
 
+---
+
 ## Coverage Requirements
 
-### 테스트 대상 (비즈니스 로직 중심)
-- **Service 레이어**: 핵심 비즈니스 로직 → 필수 테스트
-- **QueryService**: 복잡한 조회 로직 → 필수 테스트
-- **Domain Entity**: 비즈니스 메서드 (상태 변경 등) → 필수 테스트
-- **Custom Repository**: QueryDSL 등 커스텀 쿼리 → 필수 테스트
+### Test Targets (Business Logic Focus)
+- **Service Layer**: Core business logic - **Required**
+- **QueryService**: Complex query logic - **Required**
+- **Domain Entity**: Business methods (state changes) - **Required**
+- **Custom Repository**: QueryDSL and custom queries - **Required**
 
-### 테스트 제외 대상
-- **Controller**: 단순 위임만 하는 경우 (통합 테스트로 대체)
-- **DTO**: 로직 없는 record/class
-- **Config**: 설정 클래스
-- **Entity getter**: 단순 조회
+### Excluded from Tests
+- **Controller**: Simple delegation (covered by integration tests)
+- **DTO**: Records/classes with no logic
+- **Config**: Configuration classes
+- **Entity getters**: Simple accessors
 
-### 커버리지 목표
-| 레이어 | 목표 | 비고 |
+### Coverage Goals
+| Layer | Goal | Note |
 |--------|------|------|
-| Service | 80%+ | 비즈니스 로직 핵심 |
-| Domain (비즈니스 메서드) | 90%+ | 상태 변경 로직 |
-| Repository (커스텀) | 70%+ | 복잡한 쿼리 |
-| 전체 | 60%+ | 비즈니스 로직 제외 시 낮아도 OK |
+| Service | 80%+ | Core business logic |
+| Domain (business methods) | 90%+ | State change logic |
+| Repository (custom) | 70%+ | Complex queries |
+| Overall | 60%+ | OK to be lower excluding business logic |
+
+---
 
 ## Testing Spring Modulith Events
+
 ```java
 @SpringBootTest
 class UserEventTest {
@@ -247,19 +262,22 @@ class UserEventTest {
     
     @Test
     void shouldTriggerNotification_whenUserCreatedEventPublished() {
-        // Given
+        // given
         Long userId = 1L;
         
-        // When
+        // when
         eventPublisher.publishEvent(new UserCreatedEvent(userId));
         
-        // Then
+        // then
         verify(notificationService, timeout(1000)).sendWelcomeNotification(userId);
     }
 }
 ```
 
+---
+
 ## Test Database Configuration
+
 ```yaml
 # src/test/resources/application-test.yml
 spring:
@@ -271,18 +289,24 @@ spring:
       ddl-auto: create-drop
 ```
 
+---
+
 ## Assertions Library
+
 Use AssertJ for fluent assertions:
 ```java
-// ✅ AssertJ (preferred)
+// AssertJ (preferred)
 assertThat(user.getEmail()).isEqualTo("test@example.com");
 assertThat(list).hasSize(3).contains(user1, user2);
 
-// ❌ JUnit assertions (avoid)
+// JUnit assertions (avoid)
 assertEquals("test@example.com", user.getEmail());
 ```
 
+---
+
 ## Test Coverage with JaCoCo
+
 ```gradle
 // build.gradle
 plugins {

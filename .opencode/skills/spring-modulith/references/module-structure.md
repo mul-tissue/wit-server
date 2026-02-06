@@ -6,9 +6,11 @@
 com.wit.user/
 ├── api/
 │   └── UserController.java
-├── service/
-│   ├── UserService.java          # Command (CUD)
-│   └── UserQueryService.java     # Query (Read)
+├── application/
+│   ├── UserService.java          # Command (CUD) interface
+│   ├── UserServiceImpl.java      # Command implementation
+│   ├── UserQueryService.java     # Query (Read) interface
+│   └── UserQueryServiceImpl.java # Query implementation
 ├── domain/
 │   └── User.java
 ├── repository/
@@ -83,6 +85,7 @@ public class User {
         this.role = role != null ? role : UserRole.USER;
     }
     
+    // Business methods (NO SETTERS!)
     public void updateProfile(String name, String profileImageUrl) {
         this.name = name;
         this.profileImageUrl = profileImageUrl;
@@ -100,8 +103,8 @@ enum UserRole {
 package com.wit.user.api;
 
 import com.wit.user.dto.*;
-import com.wit.user.service.UserService;
-import com.wit.user.service.UserQueryService;
+import com.wit.user.application.UserService;
+import com.wit.user.application.UserQueryService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -165,7 +168,7 @@ public class UserController {
 ## Service Example (Command)
 
 ```java
-package com.wit.user.service;
+package com.wit.user.application;
 
 import com.wit.user.domain.User;
 import com.wit.user.dto.*;
@@ -180,12 +183,13 @@ import org.springframework.transaction.annotation.Transactional;
 @Service
 @Transactional
 @RequiredArgsConstructor
-public class UserService {
+public class UserServiceImpl implements UserService {
     
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
     private final ApplicationEventPublisher eventPublisher;
     
+    @Override
     public UserResponse create(UserRequest request) {
         // Validate email uniqueness
         if (userRepository.existsByEmail(request.email())) {
@@ -208,6 +212,7 @@ public class UserService {
         return UserResponse.from(saved);
     }
     
+    @Override
     public UserResponse update(Long id, UserUpdateRequest request) {
         User user = userRepository.findById(id)
             .orElseThrow(() -> new UserNotFoundException("User not found: " + id));
@@ -219,6 +224,7 @@ public class UserService {
         return UserResponse.from(user);
     }
     
+    @Override
     public void delete(Long id) {
         if (!userRepository.existsById(id)) {
             throw new UserNotFoundException("User not found: " + id);
@@ -233,7 +239,7 @@ public class UserService {
 ## Service Example (Query)
 
 ```java
-package com.wit.user.service;
+package com.wit.user.application;
 
 import com.wit.user.dto.UserDTO;
 import com.wit.user.dto.UserProfileDTO;
@@ -247,24 +253,28 @@ import org.springframework.transaction.annotation.Transactional;
 @Service
 @Transactional(readOnly = true)
 @RequiredArgsConstructor
-public class UserQueryService {
+public class UserQueryServiceImpl implements UserQueryService {
     
     private final UserQueryRepository userQueryRepository;
     
+    @Override
     public UserDTO findById(Long id) {
         return userQueryRepository.findById(id)
             .orElseThrow(() -> new UserNotFoundException("User not found: " + id));
     }
     
+    @Override
     public Page<UserDTO> findAll(Pageable pageable) {
         return userQueryRepository.findAll(pageable);
     }
     
+    @Override
     public Page<UserDTO> search(String keyword, Pageable pageable) {
         return userQueryRepository.searchByKeyword(keyword, pageable);
     }
     
     // This method is for inter-module communication
+    @Override
     public UserProfileDTO getProfile(Long userId) {
         return userQueryRepository.findProfileById(userId)
             .orElseThrow(() -> new UserNotFoundException("User not found: " + userId));
