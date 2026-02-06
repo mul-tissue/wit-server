@@ -37,10 +37,6 @@ Key points:
 public class User {
     @Setter // NEVER use @Setter
     private String nickname;
-    
-    public void setNickname(String nickname) { // NEVER
-        this.nickname = nickname;
-    }
 }
 ```
 
@@ -54,32 +50,19 @@ public class User {
     private UserStatus status;
     
     // Business method with clear intent
-    public void updateProfile(String nickname, String profileImagePath) {
+    public void updateProfile(String nickname) {
         this.nickname = nickname;
-        this.profileImagePath = profileImagePath;
     }
     
     // State transition with validation
     public void activate() {
-        if (this.status != UserStatus.PENDING_ONBOARDING) {
-            throw new IllegalStateException("Cannot activate user in status: " + this.status);
+        if (this.status != UserStatus.PENDING) {
+            throw new IllegalStateException("Cannot activate");
         }
         this.status = UserStatus.ACTIVE;
     }
-    
-    // Explicit withdrawal with timestamp
-    public void withdraw() {
-        this.status = UserStatus.WITHDRAWN;
-        this.withdrawnAt = LocalDateTime.now();
-    }
 }
 ```
-
-### Why No Setters?
-1. **Intent is clear**: `user.withdraw()` is clearer than `user.setStatus(WITHDRAWN)`
-2. **Validation**: Business methods can validate state transitions
-3. **Encapsulation**: Internal state changes are controlled
-4. **Auditability**: Side effects (timestamps, events) are handled consistently
 
 ---
 
@@ -108,7 +91,7 @@ com.wit.<module>/
 │   │   └── Create<Entity>Request.java
 │   ├── response/
 │   │   └── <Entity>Response.java
-│   └── <Entity><Purpose>Dto.java     # nested/shared
+│   └── <Entity><Purpose>Dto.java
 ```
 
 ---
@@ -127,10 +110,10 @@ public class UserService {
     }
 }
 
-// Field injection (avoid)
+// Field injection (AVOID)
 @Service
 public class UserService {
-    @Autowired // AVOID
+    @Autowired // NEVER
     private UserRepository userRepository;
 }
 ```
@@ -140,14 +123,6 @@ public class UserService {
 - **Service**: Business logic, transactions
 - **Repository**: Data access only
 - **Domain**: Business rules, entities
-
-### File Naming
-- Controllers: `*Controller.java`
-- Services: `*Service.java` (interface), `*ServiceImpl.java` (implementation)
-- Query Services: `*QueryService.java` (interface), `*QueryServiceImpl.java` (implementation)
-- Repositories: `*Repository.java`, `*QueryRepository.java`
-- DTOs: `dto/request/*Request.java`, `dto/response/*Response.java`, `dto/*Dto.java`
-- Events: `*Event.java` (past tense, e.g., `UserCreatedEvent`)
 
 ---
 
@@ -167,15 +142,15 @@ public class UserController {
     }
     
     @PostMapping
-    public ResponseEntity<UserResponse> create(@Valid @RequestBody UserRequest request) {
+    public ResponseEntity<UserResponse> create(@Valid @RequestBody CreateUserRequest request) {
         UserResponse response = userService.create(request);
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
     
     @GetMapping("/{id}")
-    public ResponseEntity<UserDTO> getById(@PathVariable Long id) {
-        UserDTO user = userQueryService.findById(id);
-        return ResponseEntity.ok(user);
+    public ResponseEntity<UserResponse> getById(@PathVariable Long id) {
+        UserResponse response = userQueryService.findById(id);
+        return ResponseEntity.ok(response);
     }
 }
 ```
@@ -187,8 +162,8 @@ public class UserController {
 ```java
 // Service Interface
 public interface UserService {
-    UserResponse create(UserRequest request);
-    void update(Long id, UserRequest request);
+    UserResponse create(CreateUserRequest request);
+    void update(Long id, UpdateUserRequest request);
     void delete(Long id);
 }
 
@@ -202,7 +177,7 @@ public class UserServiceImpl implements UserService {
     
     @Override
     @Transactional
-    public UserResponse create(UserRequest request) {
+    public UserResponse create(CreateUserRequest request) {
         User user = User.builder()
             .nickname(request.nickname())
             .email(request.email())
@@ -223,8 +198,8 @@ public class UserServiceImpl implements UserService {
 ```java
 // Query Service Interface
 public interface UserQueryService {
-    UserDTO findById(Long id);
-    List<UserDTO> findAll();
+    UserResponse findById(Long id);
+    List<UserResponse> findAll();
 }
 
 // Query Service Implementation
@@ -236,10 +211,10 @@ public class UserQueryServiceImpl implements UserQueryService {
     private final UserRepository userRepository;
     
     @Override
-    public UserDTO findById(Long id) {
+    public UserResponse findById(Long id) {
         User user = userRepository.findById(id)
-            .orElseThrow(() -> new CustomException(UserErrorCode.USER_NOT_FOUND));
-        return UserDTO.from(user);
+            .orElseThrow(() -> new BusinessException(UserErrorCode.USER_NOT_FOUND));
+        return UserResponse.from(user);
     }
 }
 ```
@@ -248,30 +223,17 @@ public class UserQueryServiceImpl implements UserQueryService {
 
 ## DTO Pattern
 
-### Package Structure
-```
-dto/
-├── request/
-│   ├── CreateUserRequest.java
-│   └── UpdateUserRequest.java
-├── response/
-│   ├── UserResponse.java
-│   └── UserDetailResponse.java
-└── UserProfileDto.java          # nested/shared DTO
-```
-
 ### Naming Convention
 
 | Type | Pattern | Example |
 |------|---------|---------|
-| Request | `<Action><Entity>Request` | `CreateUserRequest`, `UpdateCompanionRequest` |
-| Response | `<Entity>Response`, `<Entity><Detail>Response` | `UserResponse`, `CompanionDetailResponse` |
-| Nested/Shared DTO | `<Parent><Child>Dto` | `CompanionDestinationDto`, `FeedImageDto` |
-| Inter-module DTO | `<Entity><Purpose>Dto` | `UserProfileDto`, `CompanionSummaryDto` |
+| Request | `<Action><Entity>Request` | `CreateUserRequest` |
+| Response | `<Entity>Response` | `UserResponse` |
+| Nested/Shared DTO | `<Parent><Child>Dto` | `CompanionDestinationDto` |
+| Inter-module DTO | `<Entity><Purpose>Dto` | `UserProfileDto` |
 
 ### Request DTO
 ```java
-// dto/request/CreateUserRequest.java
 public record CreateUserRequest(
     @NotBlank String email,
     @NotBlank String name,
@@ -281,7 +243,6 @@ public record CreateUserRequest(
 
 ### Response DTO
 ```java
-// dto/response/UserResponse.java
 public record UserResponse(
     Long id,
     String email,
@@ -299,87 +260,33 @@ public record UserResponse(
 }
 ```
 
-### Nested DTO (separate file)
-```java
-// dto/CompanionDestinationDto.java
-public record CompanionDestinationDto(
-    String city,
-    String country,
-    LocalDate arrivalDate,
-    LocalDate departureDate
-) {
-    public static CompanionDestinationDto from(CompanionDestination destination) {
-        return new CompanionDestinationDto(
-            destination.getCity(),
-            destination.getCountry(),
-            destination.getArrivalDate(),
-            destination.getDepartureDate()
-        );
-    }
-}
-```
-
 ---
 
-## Event Pattern
-
-```java
-// Event class (past tense)
-public record UserCreatedEvent(Long userId) {}
-
-// Event listener (in another module)
-@Component
-public class NotificationEventListener {
-    
-    private final NotificationService notificationService;
-    
-    public NotificationEventListener(NotificationService notificationService) {
-        this.notificationService = notificationService;
-    }
-    
-    @EventListener
-    public void handleUserCreated(UserCreatedEvent event) {
-        notificationService.sendWelcomeNotification(event.userId());
-    }
-}
-```
-
----
-
-## Response & Error Handling
-
-### Error Response Format
-```json
-{
-  "errorName": "USER_NOT_FOUND",
-  "message": "사용자를 찾을 수 없습니다."
-}
-```
+## Error Handling
 
 ### ErrorCode Interface
 ```java
 public interface ErrorCode {
     HttpStatus getHttpStatus();
+    String getCode();
     String getMessage();
-    String getErrorName();  // enum name() return
 }
 ```
 
-### Domain ErrorCode Example
+### Domain ErrorCode
 ```java
 @Getter
 @AllArgsConstructor
 public enum UserErrorCode implements ErrorCode {
     USER_NOT_FOUND(HttpStatus.NOT_FOUND, "사용자를 찾을 수 없습니다."),
     DUPLICATE_NICKNAME(HttpStatus.CONFLICT, "이미 사용 중인 닉네임입니다."),
-    INVALID_USER_STATUS(HttpStatus.BAD_REQUEST, "유효하지 않은 사용자 상태입니다."),
     ;
 
     private final HttpStatus httpStatus;
     private final String message;
 
     @Override
-    public String getErrorName() {
+    public String getCode() {
         return this.name();
     }
 }
@@ -387,39 +294,9 @@ public enum UserErrorCode implements ErrorCode {
 
 ### Throwing Exceptions
 ```java
-// In Service
 public User findById(Long id) {
     return userRepository.findById(id)
-        .orElseThrow(() -> new CustomException(UserErrorCode.USER_NOT_FOUND));
-}
-```
-
-### Controller Response
-```java
-@RestController
-@RequestMapping("/v1/users")
-@RequiredArgsConstructor
-public class UserController {
-
-    private final UserService userService;
-
-    @PostMapping
-    public ResponseEntity<UserResponse> create(@Valid @RequestBody UserCreateRequest request) {
-        UserResponse response = userService.create(request);
-        return ResponseEntity.status(HttpStatus.CREATED).body(response);
-    }
-
-    @GetMapping("/{id}")
-    public ResponseEntity<UserResponse> getById(@PathVariable Long id) {
-        UserResponse response = userQueryService.findById(id);
-        return ResponseEntity.ok(response);
-    }
-
-    @DeleteMapping("/{id}")
-    public ResponseEntity<Void> delete(@PathVariable Long id) {
-        userService.delete(id);
-        return ResponseEntity.noContent().build();
-    }
+        .orElseThrow(() -> new BusinessException(UserErrorCode.USER_NOT_FOUND));
 }
 ```
 
