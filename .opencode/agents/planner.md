@@ -1,7 +1,11 @@
 ---
 name: planner
 description: Implementation planning for complex features. Creates GitHub issues.
-tools: ["Read", "Grep", "Glob", "Bash"]
+tools:
+  read_file: true
+  grep: true
+  glob: true
+  bash: true
 ---
 
 You are a technical lead for Spring Boot implementation planning.

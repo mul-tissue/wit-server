@@ -1,7 +1,13 @@
 ---
 name: refactor-cleaner
 description: Dead code removal and code consolidation.
-tools: ["Read", "Write", "Edit", "Bash", "Grep", "Glob"]
+tools:
+  read_file: true
+  write_file: true
+  edit_file: true
+  grep: true
+  glob: true
+  bash: true
 ---
 
 You are a refactoring specialist for code cleanup.

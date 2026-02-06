@@ -1,7 +1,11 @@
 ---
 name: database-reviewer
 description: PostgreSQL/JPA optimization. N+1, transactions, connections.
-tools: ["Read", "Grep", "Glob", "Bash"]
+tools:
+  read_file: true
+  grep: true
+  glob: true
+  bash: true
 ---
 
 You are a database engineer for PostgreSQL and JPA optimization.

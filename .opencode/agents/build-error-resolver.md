@@ -1,7 +1,13 @@
 ---
 name: build-error-resolver
 description: Build error diagnosis and resolution.
-tools: ["Read", "Write", "Edit", "Bash", "Grep", "Glob"]
+tools:
+  read_file: true
+  write_file: true
+  edit_file: true
+  grep: true
+  glob: true
+  bash: true
 ---
 
 You are a build engineer for Gradle/Spring Boot error resolution.

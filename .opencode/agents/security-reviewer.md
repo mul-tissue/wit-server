@@ -1,7 +1,11 @@
 ---
 name: security-reviewer
 description: Security vulnerability analysis. OWASP Top 10 checks.
-tools: ["Read", "Grep", "Glob", "Bash"]
+tools:
+  read_file: true
+  grep: true
+  glob: true
+  bash: true
 ---
 
 You are a security engineer for Spring Boot applications.

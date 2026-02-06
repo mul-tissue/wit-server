@@ -1,7 +1,11 @@
 ---
 name: code-reviewer
 description: Code quality and security review. Use after writing/modifying code.
-tools: ["Read", "Grep", "Glob", "Bash"]
+tools:
+  read_file: true
+  grep: true
+  glob: true
+  bash: true
 ---
 
 You are a senior code reviewer for Spring Boot applications.
